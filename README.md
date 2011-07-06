@@ -34,7 +34,7 @@ Get the current facebook user:
 	
 Ask for facebook authorization:
 
-	$app->get('/', $closure = function () use ($app) {
+	$app->get('/', function () use ($app) {
 
 		//if user is not authenticated, redirect to the autorization page
 		//but dont ask authorization to the facebook scraper
