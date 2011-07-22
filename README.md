@@ -12,7 +12,7 @@ Installation
 Get the sources:
 
     cd vendor
-    git clone https://dpitard@github.com/dpitard/Faceboo.git faceboo
+    git clone https://github.com/dpitard/Faceboo.git faceboo
     git clone https://github.com/facebook/php-sdk.git php-sdk
 
 Usage
