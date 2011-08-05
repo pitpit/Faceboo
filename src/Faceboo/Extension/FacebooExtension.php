@@ -37,7 +37,7 @@ class FaceBooExtension implements ExtensionInterface
             throw new \Exception("Please set \$app['fb.class_path'] to the Facebook PHP SDK dir (https://github.com/facebook/php-sdk).");
         }
         
-        require $app['fb.class_path'] . '/facebook.php';
+        require_once $app['fb.class_path'] . '/facebook.php';
 
         $app['facebook'] = $app->share(function () use ($app) {
             $app->flush();
