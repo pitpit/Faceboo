@@ -78,7 +78,7 @@ class Facebook extends BaseFacebook
         return $url;
     }
     
-    public function getLoginUrl(array $params = array())
+    public function getLoginUrl($params = array())
     {
         $url = parent::getLoginUrl($params);
         
