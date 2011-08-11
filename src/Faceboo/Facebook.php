@@ -4,10 +4,10 @@ namespace Faceboo;
 
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Facebook as BaseFacebook;
+use Facebook as FacebookBase;
 use Silex\Application;
 
-class Facebook extends BaseFacebook
+class Facebook extends FacebookBase
 {
     protected $app;
     
@@ -44,7 +44,8 @@ class Facebook extends BaseFacebook
             'secret' => $app['fb.secret'],
         );
         
-        parent::__construct($config);
+        //we want to avoir the session_start in parent::__construct()
+        \BaseFacebook::__construct($config);
     }
     
     public function getCurrentUrl()
