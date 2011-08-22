@@ -40,6 +40,7 @@ class FaceBooExtension implements ExtensionInterface
         require_once $app['fb.class_path'] . '/facebook.php';
 
         $app['facebook'] = $app->share(function () use ($app) {
+            $app->register(new \Silex\Extension\SessionExtension());
             $app->flush();
             
             return new Facebook($app);

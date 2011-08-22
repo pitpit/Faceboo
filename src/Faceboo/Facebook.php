@@ -140,4 +140,35 @@ EOD;
             return new RedirectResponse($url);
         }
     }
+    
+    protected function setPersistentData($key, $value)
+    {
+        if (!in_array($key, self::$kSupportedKeys)) {
+            throw new \Exception('Unsupported key passed to setPersistentData.');
+        }
+
+        $sessionVarName = $this->constructSessionVariableName($key);
+        $this->app['session']->set($sessionVarName, $value);
+    }
+
+    protected function getPersistentData($key, $default = false)
+    {
+        if (!in_array($key, self::$kSupportedKeys)) {
+            throw new \Exception('Unsupported key passed to getPersistentData.');
+        }
+
+        $sessionVarName = $this->constructSessionVariableName($key);
+        
+        return ($this->app['session']->has($sessionVarName))?$this->app['session']->get($sessionVarName):$default;
+    }
+
+    protected function clearPersistentData($key)
+    {
+        if (!in_array($key, self::$kSupportedKeys)) {
+            throw new \Exception('Unsupported key passed to clearPersistentData.');
+        }
+
+        $sessionVarName = $this->constructSessionVariableName($key);
+        $this->app['session']->remove($sessionVarName);
+    }    
 }
