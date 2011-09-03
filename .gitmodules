@@ -1,0 +1,6 @@
+[submodule "vendor/php-sdk"]
+	path = vendor/php-sdk
+	url = https://github.com/facebook/php-sdk.git
+[submodule "vendor/Symfony/Component/ClassLoader"]
+	path = vendor/Symfony/Component/ClassLoader
+	url = https://github.com/symfony/ClassLoader.git
