@@ -4,37 +4,29 @@ namespace Faceboo\Extension;
 
 use Silex\Application;
 use Silex\ExtensionInterface;
-
+use Silex\Extension\SessionExtension;
 use Symfony\Component\ClassLoader\MapFileClassLoader;
-use Faceboo\Routing\Generator\CanvasUrlGenerator;
-use Faceboo\Facebook;
+use Faceboo\Routing\Generator\UrlGenerator;
+use Faceboo\Facebook;;
 
 class FaceBooExtension implements ExtensionInterface
 {
     public function register(Application $app)
     {
-        $app['canvas_url_generator'] = $app->share(function () use ($app) {
+        $app['url_generator'] = $app->share(function () use ($app) {
             $app->flush();
             
-            $context = clone $app['request_context'];
+            $urlGenerator = new UrlGenerator($app['routes'], $app['request_context']);
             
-            if (isset($app['fb.canvas']) && $app['fb.canvas']) {
-                $success = preg_match('/^(https?):\/\/([^\/]*)(\/[^\/]*)\/?$/', $app['fb.canvas'], $matches);
-                
-                if (false === $success) {
-                    throw new \Exception("Invalid Facebook canvas URL. Check the value of \$app['fb.canvas']");
-                }
-                
-                $context->setScheme($matches[1]);
-                $context->setHost($matches[2]);
-                $context->setBaseUrl($matches[3] );
+            if (isset($app['fb.canvas']) && $app['fb.canvas'] && isset($app['fb.namespace'])) {
+                $urlGenerator->setNamespace($app['fb.namespace']);
             }
             
-            return new CanvasUrlGenerator($app['routes'], $context);
+            return $urlGenerator;
         });
         
         if (!isset($app['fb.class_path'])) {
-            throw new \Exception("Please set \$app['fb.class_path'] to the Facebook PHP SDK dir (https://github.com/facebook/php-sdk).");
+            $app['fb.class_path'] = __DIR__ . '/../../../vendor/php-sdk/src';
         }
         
         require_once $app['fb.class_path'] . '/facebook.php';
@@ -42,11 +34,25 @@ class FaceBooExtension implements ExtensionInterface
         $app['facebook'] = $app->share(function () use ($app) {
             
             if (!isset($app['session'])) {
-                $app->register(new \Silex\Extension\SessionExtension());
+                $app->register(new SessionExtension());
             }
             $app->flush();
             
-            return new Facebook($app);
+            $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'permissions', 'redirect');
+            $config = array();
+            foreach($parameters as $parameter) {
+                if (isset($app['fb.'.$parameter])) {
+
+                    $config[$parameter] = $app['fb.'.$parameter];
+                }
+            }
+
+            return new Facebook(
+                    $app['session'],
+                    $app['dispatcher'],
+                    $config,
+                    isset($app['monolog'])?$app['monolog']:null
+                );
         });
     }
 }

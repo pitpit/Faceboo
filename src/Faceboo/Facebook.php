@@ -2,55 +2,211 @@
 
 namespace Faceboo;
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Session;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Facebook as FacebookBase;
-use Silex\Application;
+
+use Silex\SilexEvents;
 
 class Facebook extends FacebookBase
 {
-    protected $app;
+    protected $request;
+    protected $session;
+    protected $logger;
+    protected $parameters;
     
+    const APP_BASE_URL = 'apps.facebook.com';
+    
+    /**
+     * store a debug trace
+     * 
+     * @param string $message 
+     */
     protected  function debugLog($message)
     {
-        if (isset($this->app['monolog'])) {
-            $this->app['monolog']->addDebug($message);
+        if (null !== $this->logger) {
+            $this->logger->addDebug($message);
+        }
+    }
+
+    /**
+     * Constructor
+     * 
+     * 
+     * @param Symfony\Component\HttpFoundation\Request $request
+     * @param array $parameters
+     */
+    public function __construct(Session $session, EventDispatcher $dispatcher, array $parameters = array(), $logger = null)
+    {
+        $this->session = $session;
+        $this->dispatcher = $dispatcher;
+        $this->logger = $logger;
+
+        $this->parameters = array_merge($this->getDefaultParameters(), $parameters);
+
+        if ($this->hasParameter('proxy')) {
+             self::$CURL_OPTS[CURLOPT_PROXY] = $this->getParameter('proxy');
+        }
+        
+        $baseParameters = array(
+            'app_id' => isset($this->parameters['app_id'])?$this->parameters['app_id']:null,
+            'secret' => isset($this->parameters['secret'])?$this->parameters['secret']:null,
+        );
+
+        //we want to avoir the session_start in parent::__construct()
+        \BaseFacebook::__construct($baseParameters);
+    }
+    
+    public function setRequest(Request $request)
+    {
+        $this->request = $request;
+    }
+    
+    public function getDefaultParameters()
+    {
+        return array(
+            'canvas' => true,
+            'permissions' => array(),
+            'redirect' => true
+        );
+    }
+    
+    public function getParameter($name)
+    {
+        if (!isset($this->parameters[$name])) {
+            throw new \Exception(sprintf('Undefined parameters parameter "%s"', $name));
+        }
+        
+        return $this->parameters[$name];
+    }
+    
+    public function hasParameter($name)
+    {
+        return (isset($this->parameters[$name]));
+    }
+    
+    /**
+     * Get the permissions that the user did not provide
+     * 
+     * @return array
+     */
+    public function getMissingPermissions()
+    {
+        $needed = $this->getParameter('permissions');
+
+        $userId = $this->getUser();
+        if (!$userId) {
+            
+            if ($this->request->query->get('state')) {
+                //something goes wrong 
+                //we get an authorisation but we are unable to get the user id
+                //website mode : because the app is not reachable from facebook
+                //canvas mode : because the app is in sandbox mode
+                throw new \Exception('Unable to get the user id');
+            }
+            $this->debugLog(__METHOD__.'()| could not retrieve the user id');
+             
+            return $needed;
+        }
+        
+        $data = $this->api('/' . $userId . '/permissions');
+        
+        if (!$data || !isset($data['data'][0])) {
+            throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
+        }
+        
+        $current = array_keys($data['data'][0]);
+        $missing = array_diff($needed, $current);
+        
+        return $missing;
+    }
+    
+    public function redirect()
+    {
+        if ($this->getParameter('canvas') && $this->getParameter('redirect')) {
+            
+            $facebook = $this;
+            $this->dispatcher->addListener(SilexEvents::BEFORE, function (GetResponseEvent $event) use ($facebook) {
+
+                $request = $event->getRequest();
+                $facebook->setRequest($request);
+
+                //if we are in canvas mode (iframe), but we tried to access the 
+                //server directly
+                 $pattern = '/^https?\:\/\/' . preg_quote($facebook::APP_BASE_URL). '/';
+
+                 if (!$request->server->has('HTTP_REFERER')
+                     || !preg_match($pattern, $request->server->get('HTTP_REFERER'))) {
+
+                    $url = $facebook->getCurrentAppUrl();
+                    $response = new RedirectResponse($url, 302);
+                    $event->setResponse($response);
+                }
+            }, 1);
         }
     }
     
     /**
-     * Constructor
      * 
-     * @param type $config 
+     * 
+     * @api
      */
-    public function __construct(Application $app)
+    public function auth(array $routes = array())
     {
-        $this->app = $app;
-        
-        if (!isset($app['fb.app_id'])) {
-            throw new \Exception("You must set \$app['fb.app_id']");
-        }
+        $facebook = $this;
+        $this->dispatcher->addListener(SilexEvents::BEFORE, function (GetResponseEvent $event) use ($facebook) {
 
-        if (!isset($app['fb.secret'])) {
-            throw new \Exception("You must set \$app['fb.secret']");
-        }
+            $request = $event->getRequest();
+            $facebook->setRequest($request);
+                
+            $missing = $facebook->getMissingPermissions();
+            if (count($missing) > 0) {
+                $params = array(
+                    'client_id' => $facebook->getParameter('app_id'),
+                    'scope' => implode(',', $missing)
+                );
 
-        if (isset($app['fb.proxy'])) {
-             self::$CURL_OPTS[CURLOPT_PROXY] = $app['fb.proxy'];
-        }
-              
-        $config = array(
-            'appId'  => $app['fb.app_id'],
-            'secret' => $app['fb.secret'],
-        );
-        
-        //we want to avoir the session_start in parent::__construct()
-        \BaseFacebook::__construct($config);
+                //if we are in canvas mode (iframe), we need to redirect the parent
+                if ($facebook->getParameter('canvas')) {
+
+                    $params['redirect_uri'] = $facebook->getCurrentAppUrl();
+                    $url = $facebook->getLoginUrl($params);
+
+$html = <<< EOD
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Restricted Area</title>
+<script type="text/javascript" >
+top.location.href = "$url";
+</script>
+</head>
+<body></body>
+</html>
+EOD;
+                    $response = new Response($html, 403);
+
+                } else {
+                    throw new \Exception('Not implemented yet');
+                }
+                
+                $event->setResponse($response);
+            }
+        }, 0);
     }
     
-    public function getCurrentUrl()
+    /**
+     * Get the relative URL (without scheme, hostname and port)
+     * 
+     * @return string
+     */
+    public function getRelativeUrl()
     {
-        $qs = $this->app['request']->getQueryString();
+        $qs = $this->request->getQueryString();
 
         $query = '';
         if (null !== $qs) {
@@ -68,17 +224,38 @@ class Facebook extends FacebookBase
           }
         }
         
-        if (isset($this->app['fb.canvas']) && $this->app['fb.canvas']) {
-            $url = $this->app['fb.canvas'] . $this->app['request']->getBaseUrl().$this->app['request']->getPathInfo().$query;
-        } else {
-            $url = $this->app['request']->getScheme().'://'.$this->app['request']->getHttpHost().$this->app['request']->getBaseUrl().$this->app['request']->getPathInfo().$query;
-        }
+        return $this->request->getBaseUrl().$this->request->getPathInfo().$query;
+    }
+    
+    /**
+     * In canvas mode, get the full URL (prefixed with the canvas URL)
+     * 
+     * @return string 
+     */
+    public function getCurrentAppUrl()
+    {
+        $url = $this->request->getScheme().'://' . self::APP_BASE_URL . '/' . $this->getParameter('namespace') . $this->getRelativeUrl();
+                
+        $this->debugLog(__METHOD__.'()| url='.$url);
+        
+        return $url;
+    }
+    
+    /**
+     * @see FacebookBase
+     */
+    public function getCurrentUrl()
+    {   
+        $url = $this->request->getScheme().'://'.$this->request->getHttpHost().$this->getRelativeUrl();
 
         $this->debugLog(__METHOD__.'()| url='.$url);
 
         return $url;
     }
     
+    /**
+     * @see FacebookBase
+     */
     public function getLoginUrl($params = array())
     {
         $url = parent::getLoginUrl($params);
@@ -104,43 +281,8 @@ class Facebook extends FacebookBase
     }
     
     /**
-     * Get a response to redirect user to FB oAuth page (login and request perms)
-     *
-     * - works with javascript redirection in canvas mode
-     * - works with 301 redirection in 3rd website mode
-     * 
-     * @return Response 
+     * @see FacebookBase
      */
-    public function getLoginResponse(array $params)
-    {
-        $url = $this->getLoginUrl($params);
-        
-        if (isset($this->app['fb.canvas']) && $this->app['fb.canvas']) {
-
-$html = <<< EOD
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-    <head>
-        <title></title>
-        <script type="text/javascript" >
-            top.location.href = "$url";
-        </script>
-    </head>
-    <body></body>
-</html>
-EOD;
-
-            $this->debugLog(__METHOD__.'()| canvas mode');
-
-            return new Response($html);
-        } else {
-            
-            $this->debugLog(__METHOD__.'()| full mode');
-            
-            return new RedirectResponse($url);
-        }
-    }
-    
     protected function setPersistentData($key, $value)
     {
         if (!in_array($key, self::$kSupportedKeys)) {
@@ -148,9 +290,12 @@ EOD;
         }
 
         $sessionVarName = $this->constructSessionVariableName($key);
-        $this->app['session']->set($sessionVarName, $value);
+        $this->session->set($sessionVarName, $value);
     }
 
+    /**
+     * @see FacebookBase
+     */
     protected function getPersistentData($key, $default = false)
     {
         if (!in_array($key, self::$kSupportedKeys)) {
@@ -159,9 +304,12 @@ EOD;
 
         $sessionVarName = $this->constructSessionVariableName($key);
         
-        return ($this->app['session']->has($sessionVarName))?$this->app['session']->get($sessionVarName):$default;
+        return ($this->session->has($sessionVarName))?$this->session->get($sessionVarName):$default;
     }
 
+    /**
+     * @see FacebookBase
+     */
     protected function clearPersistentData($key)
     {
         if (!in_array($key, self::$kSupportedKeys)) {
@@ -169,6 +317,6 @@ EOD;
         }
 
         $sessionVarName = $this->constructSessionVariableName($key);
-        $this->app['session']->remove($sessionVarName);
+        $this->session->remove($sessionVarName);
     }    
 }

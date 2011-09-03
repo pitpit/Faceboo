@@ -2,12 +2,29 @@
 
 namespace Faceboo\Routing\Generator;
 
-use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGenerator as BaseUrlGenerator;
+use Faceboo\Facebook;
 
-class CanvasUrlGenerator extends UrlGenerator
+class UrlGenerator extends BaseUrlGenerator
 {
-    public function generate($name, array $parameters = array(), $absolute = false)
+    protected $namespace;
+    
+    public function setNamespace($namespace)
     {
-        return parent::generate($name, $parameters, $absolute);
+        $this->namespace = $namespace;
+    }
+    
+    public function getBaseUrl()
+    {
+        return $this->context->getScheme().'://' . Facebook::APP_BASE_URL . '/' . $this->namespace;
+    }
+    
+    public function generate($name, $parameters = array(), $absolute = false)
+    {
+        if (null === $this->namespace || !$absolute) {
+            return parent::generate($name, $parameters, $absolute);
+        } else {
+            return $this->getBaseUrl() . parent::generate($name, $parameters, false);
+        }
     }
 }
