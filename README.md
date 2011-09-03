@@ -3,13 +3,12 @@ Faceboo
 
 Integrate Facebook SDK into Silex micro-framework
 
-Requirements
-------------
 
 Features
 --------
 * provide an automated authorization mechanism (based on facebook oauth)
 * work behind a non transparent proxy
+* allow to use facebook api in Silex
 
 Installation
 ------------
@@ -17,7 +16,7 @@ Installation
 Get the sources:
 
     cd vendor
-    git clone https://github.com/dpitard/Faceboo.git faceboo
+    git clone https://github.com/dpitard/Faceboo.git
 
 Usage
 -----
