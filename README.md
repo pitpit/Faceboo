@@ -16,14 +16,17 @@ Installation
 Get the sources:
 
     cd vendor
-    git clone https://github.com/dpitard/Faceboo.git
+    git clone https://github.com/dpitard/Faceboo.git faceboo
+    cd faceboo
+    git submodule init
+    git submodule update
 
 Usage
 -----
 
 Register the namespace and the extension, in top of index.php:
 
-    $app['autoloader']->registerNamespace('Faceboo', __DIR__.'/../vendor/Faceboo/src');
+    $app['autoloader']->registerNamespace('Faceboo', __DIR__.'/../vendor/faceboo/src');
 
     $app->register(new Faceboo\Extension\FacebooExtension(), array(
         'fb.app_id' => 'YOUR_APP_ID'
@@ -54,13 +57,44 @@ In canvas mode, protect your canvas app from direct access to the server:
 
     $app['facebook']->redirect();
 
+    $app->match('/', function () use ($app) {
+        //...
+    });
+
     * do not rely on it for security, it's based on HTTP refered so it's not safe
 
-Get the missing permissions to access you app ():
+In a fan page tab, is the current user admin of the fan page :
 
-    $app['facebook']->getMissingPermissions()
+    $app->match('/', function () use ($app) {
 
-    * you need to define "permissions" parameter
+        $isAdmin = $app['facebook']->isFanPageAdmin();
+        
+        //...
+    }
+
+    * you need to define "secret" parameter
+
+In a fan page tab, what is the fan page id :
+
+    $app->match('/', function () use ($app) {
+
+        $pageId = $app['facebook']->getFanPageId();
+        
+        //...
+    }
+
+    * you need to define "secret" parameter
+
+In a fan page tab, does the current user like the fan page :
+
+    $app->match('/', function () use ($app) {
+
+        $isFan = $app['facebook']->isFan();
+        
+        //...
+    }
+
+    * you need to define "secret" parameter
 
 Get the current facebook user id:
 
@@ -78,7 +112,7 @@ Todo
 * fan page
     * does the user like the fan page ?
     * route according to local
-* custome auth on routes
+* custom auth on routes
 
     Protect only some routes and ask user for permissions:
 
@@ -91,9 +125,3 @@ Todo
         $app->match('/test', function () use ($app) {
             //...
         })->bind('test');
-
-Changelog
----------
-* added getMissingPermissions(), auth(), redirect()
-* updated FacebooExtension
-* added Facebook PHP SDK sources as vendor lib

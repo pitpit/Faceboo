@@ -125,6 +125,9 @@ class Facebook extends FacebookBase
         return $missing;
     }
     
+    /**
+     * @api
+     */
     public function redirect()
     {
         if ($this->getParameter('canvas') && $this->getParameter('redirect')) {
@@ -151,9 +154,8 @@ class Facebook extends FacebookBase
     }
     
     /**
-     * 
-     * 
      * @api
+     * @param array $routes
      */
     public function auth(array $routes = array())
     {
@@ -197,6 +199,72 @@ EOD;
                 $event->setResponse($response);
             }
         }, 0);
+    }
+    
+    /**
+     * Is the user fan of the facebook fan page where the app run (in a tab)
+     * 
+     * @api
+     */
+    public function isFan()
+    {
+        if (!$this->hasParameter('secret')) {
+            throw new \Exception('You need to set the "secret" parameter');
+        }
+
+        $signedRequest = $this->getSignedRequest();
+
+        if (null === $signedRequest || !isset($signedRequest['page']['liked'])) {
+            $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
+            
+            return false;
+        }
+        
+        return $signedRequest['page']['liked'];
+    }
+    
+    /**
+     * Does the user admin the fan page where the app run (in a tab)
+     * 
+     * @api
+     * @return string
+     */
+    public function isFanPageAdmin()
+    {
+        if (!$this->hasParameter('secret')) {
+            throw new \Exception('You need to set the "secret" parameter');
+        }
+
+        $signedRequest = $this->getSignedRequest();
+        if (null === $signedRequest || !isset($signedRequest['page']['admin'])) {
+            $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
+            
+            return false;
+        }
+        
+        return $signedRequest['page']['admin'];
+    }
+    
+    /**
+     * Get the facebook fan page id where the run (in a tab)
+     * 
+     * @api
+     * @return string|null
+     */
+    public function getFanPageId()
+    {
+        if (!$this->hasParameter('secret')) {
+            throw new \Exception('You need to set the "secret" parameter');
+        }
+
+        $signedRequest = $this->getSignedRequest();
+        if (null === $signedRequest || !isset($signedRequest['page']['id'])) {
+            $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
+            
+            return null;
+        }
+        
+        return $signedRequest['page']['id'];
     }
     
     /**
@@ -318,5 +386,5 @@ EOD;
 
         $sessionVarName = $this->constructSessionVariableName($key);
         $this->session->remove($sessionVarName);
-    }    
+    } 
 }
