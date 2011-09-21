@@ -101,7 +101,7 @@ class Facebook extends FacebookBase
         $userId = $this->getUser();
         if (!$userId) {
             
-            if ($this->request->query->get('state')) {
+            if ($this->request && $this->request->query->get('state')) {
                 //something goes wrong 
                 //we get an authorisation but we are unable to get the user id
                 //website mode : because the app is not reachable from facebook
@@ -157,26 +157,21 @@ class Facebook extends FacebookBase
      * @api
      * @param array $routes
      */
-    public function auth(array $routes = array())
+    public function auth(Request $request, $redirectUri = null)
     {
-        $facebook = $this;
-        $this->dispatcher->addListener(SilexEvents::BEFORE, function (GetResponseEvent $event) use ($facebook) {
+        $this->setRequest($request);
+        $missing = $this->getMissingPermissions();
+        if (count($missing) > 0) {
+            $params = array(
+                'client_id' => $this->getParameter('app_id'),
+                'scope' => implode(',', $missing)
+            );
 
-            $request = $event->getRequest();
-            $facebook->setRequest($request);
-                
-            $missing = $facebook->getMissingPermissions();
-            if (count($missing) > 0) {
-                $params = array(
-                    'client_id' => $facebook->getParameter('app_id'),
-                    'scope' => implode(',', $missing)
-                );
+            //if we are in canvas mode (iframe), we need to redirect the parent
+            if ($this->getParameter('canvas')) {
 
-                //if we are in canvas mode (iframe), we need to redirect the parent
-                if ($facebook->getParameter('canvas')) {
-
-                    $params['redirect_uri'] = $facebook->getCurrentAppUrl();
-                    $url = $facebook->getLoginUrl($params);
+                $params['redirect_uri'] = $redirectUri?$redirectUri:$this->getCurrentAppUrl();
+                $url = $this->getLoginUrl($params);
 
 $html = <<< EOD
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -190,15 +185,14 @@ top.location.href = "$url";
 <body></body>
 </html>
 EOD;
-                    $response = new Response($html, 403);
+                return new Response($html, 403);
 
-                } else {
-                    throw new \Exception('Not implemented yet');
-                }
-                
-                $event->setResponse($response);
+            } else {
+                throw new \Exception('Not implemented yet');
             }
-        }, 0);
+        }
+        
+        return null;
     }
     
     /**
