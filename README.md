@@ -47,10 +47,11 @@ Parameters:
     
 Protect every routes and ask user for permissions:
     
-    $app['facebook']->auth();
 
     $app->match('/', function () use ($app) {
-        //...
+        if ($response = $app['facebook']->auth()) {
+            return $response;
+        }
     });
 
 In canvas mode, protect your canvas app from direct access to the server:
