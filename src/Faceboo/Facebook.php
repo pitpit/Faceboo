@@ -53,7 +53,7 @@ class Facebook extends FacebookBase
         }
         
         $baseParameters = array(
-            'app_id' => isset($this->parameters['app_id'])?$this->parameters['app_id']:null,
+            'appId' => isset($this->parameters['app_id'])?$this->parameters['app_id']:null,
             'secret' => isset($this->parameters['secret'])?$this->parameters['secret']:null,
         );
 
@@ -161,6 +161,7 @@ class Facebook extends FacebookBase
     {
         $this->setRequest($request);
         $missing = $this->getMissingPermissions();
+        
         if (count($missing) > 0) {
             $params = array(
                 'client_id' => $this->getParameter('app_id'),
