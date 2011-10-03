@@ -48,6 +48,14 @@ class Facebook extends FacebookBase
 
         $this->parameters = array_merge($this->getDefaultParameters(), $parameters);
 
+        if ($this->hasParameter('timeout')) {
+             self::$CURL_OPTS[CURLOPT_TIMEOUT] = $this->getParameter('timeout');
+        }
+        
+        if ($this->hasParameter('connect_timeout')) {
+             self::$CURL_OPTS[CURLOPT_CONNECTTIMEOUT] = $this->getParameter('connect_timeout');
+        }
+        
         if ($this->hasParameter('proxy')) {
              self::$CURL_OPTS[CURLOPT_PROXY] = $this->getParameter('proxy');
         }
