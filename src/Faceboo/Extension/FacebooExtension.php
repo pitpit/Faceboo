@@ -38,7 +38,7 @@ class FaceBooExtension implements ExtensionInterface
             }
             $app->flush();
             
-            $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'permissions', 'redirect');
+            $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'timeout', 'connect_timeout', 'permissions', 'redirect');
             $config = array();
             foreach($parameters as $parameter) {
                 if (isset($app['fb.'.$parameter])) {
