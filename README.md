@@ -1,14 +1,7 @@
 Faceboo
 =======
 
-Integrate Facebook SDK into Silex micro-framework
-
-
-Features
---------
-* provide an automated authorization mechanism (based on facebook oauth)
-* work behind a non transparent proxy
-* allow to use facebook api in Silex
+Integrate Facebook SDK into Silex micro-framework (FacebookServiceProvider) or Symfony2 (FacebooBundle).
 
 Installation
 ------------
@@ -18,11 +11,12 @@ Get the sources:
     cd vendor
     git clone https://github.com/dpitard/Faceboo.git faceboo
     cd faceboo
-    git submodule init
-    git submodule update
+    git submodule update --init
 
 Usage
 -----
+
+### Silex
 
 Register the namespace and the extension, in top of index.php:
 
@@ -45,29 +39,25 @@ Parameters:
 * facebook.class_path: define another path to reach Facebook PHP SDK
 * facebook.proxy: to make facebook api work behind non-transparent proxy
 * facebook.redirect: true|false, disable the redirection when accessing the server, in canvas mode
-    
-Protect every routes and ask user for permissions:
+
+Login and ask user for permissions if needed:
     
     $app['facebook.permissions'] = array();
 
     $app->match('/', function () use ($app) {
 
-        if ($response = $app['facebook']->auth()) {
-            return $response;
-        }
+        if ($response = $app['facebook']->auth()) return $response;
 
         //...
     });
 
-In canvas mode, protect your canvas app from direct access to the server:
+In canvas mode, protect your canvas app from direct access to the source server:
 
-    $app['facebook']->redirect();
-
-    $app->match('/', function () use ($app) {
-        //...
+    $app->before(function(Request $request) use ($app) {
+        if ($response = $app['facebook']->restrict()) return $response;
     });
 
-    * do not rely on it for security, it's based on HTTP refered so it's not safe
+    * do not rely on it for security, it's based on HTTP_REFERER so it's not safe
 
 In a fan page tab, is the current user admin of the fan page :
 
@@ -110,6 +100,35 @@ Call the Facebook api:
 
     $data =  $app['facebook']->api('/me);
 
+### Symfony2
+
+Register the autoload in app/autoload.php:
+
+    $loader->registerNamespaces(array(
+        //...
+        'Faceboo'        => __DIR__.'/../vendor/faceboo/src'
+    ));
+
+    //...
+
+    require_once __DIR__.'/../. /vendor/php-sdk/src/facebook.php';
+
+Register the bundle in app/AppKernel.php:
+
+        $bundles = array(
+            //...
+            new Faceboo\FacebookBundle\FacebooFacebookBundle(),
+        );
+
+Login and ask user for permissions if needed:
+    
+    public function indexAction()
+    {   
+        if ($response = $this->get('facebook')->auth()) return $response;
+        
+        //...
+    }
+
 Todo
 ----
 * developp permissions authorization on website mode
@@ -121,6 +140,6 @@ Todo
 
 Changelog
 ---------
-
+* app_id and secret are now mandatory
 * updated to last version of Silex
 * updated parameter prefix (now "facebook")

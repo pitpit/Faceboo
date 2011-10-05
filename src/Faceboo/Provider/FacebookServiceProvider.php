@@ -5,6 +5,7 @@ namespace Faceboo\Provider;
 use Silex\Application;
 use Silex\ServiceProviderInterface;
 use Silex\Provider\SessionServiceProvider;
+use Silex\SilexEvents;
 use Symfony\Component\ClassLoader\MapFileClassLoader;
 use Faceboo\Routing\Generator\UrlGenerator;
 use Faceboo\Facebook;
@@ -40,17 +41,14 @@ class FacebookServiceProvider implements ServiceProviderInterface
             $config = array();
             foreach($parameters as $parameter) {
                 if (isset($app['facebook.'.$parameter])) {
-
                     $config[$parameter] = $app['facebook.'.$parameter];
                 }
             }
 
             return new Facebook(
-                    $app['session'],
-                    $app['dispatcher'],
                     $config,
-                    isset($app['monolog'])?$app['monolog']:null
-                );
+                    $app['session'],
+                    isset($app['monolog'])?$app['monolog']:null);
         });
         
         $app->before(function($request) use ($app) {

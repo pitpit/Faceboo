@@ -10,14 +10,13 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Facebook as FacebookBase;
 
-use Silex\SilexEvents;
 
 class Facebook extends FacebookBase
 {
-    protected $request;
     protected $session;
     protected $logger;
     protected $parameters;
+    protected $request;
     
     const APP_BASE_URL = 'apps.facebook.com';
     
@@ -35,18 +34,21 @@ class Facebook extends FacebookBase
 
     /**
      * Constructor
-     * 
-     * 
-     * @param Symfony\Component\HttpFoundation\Request $request
-     * @param array $parameters
      */
-    public function __construct(Session $session, EventDispatcher $dispatcher, array $parameters = array(), $logger = null)
+    public function __construct(array $parameters = array(), Session $session, $logger = null)
     {
         $this->session = $session;
-        $this->dispatcher = $dispatcher;
         $this->logger = $logger;
 
         $this->parameters = array_merge($this->getDefaultParameters(), $parameters);
+        
+        if (!$this->hasParameter('app_id')) {
+            throw new \Exception('You need to set the "app_id" parameter');
+        }
+        
+        if (!$this->hasParameter('secret')) {
+            throw new \Exception('You need to set the "secret" parameter');
+        }
 
         if ($this->hasParameter('timeout')) {
              self::$CURL_OPTS[CURLOPT_TIMEOUT] = $this->getParameter('timeout');
@@ -69,12 +71,21 @@ class Facebook extends FacebookBase
         \BaseFacebook::__construct($baseParameters);
     }
     
+    public function getRequest()
+    {
+        if (null === $this->request) {
+            throw new \Exception('Request is undefined. Use setRequest()');
+        }
+        
+        return $this->request;
+    }
+    
     public function setRequest(Request $request)
     {
         $this->request = $request;
     }
     
-    public function getDefaultParameters()
+    protected function getDefaultParameters()
     {
         return array(
             'canvas' => true,
@@ -98,68 +109,49 @@ class Facebook extends FacebookBase
     }
     
     /**
-     * Get the permissions that the user did not provide
-     * 
-     * @return array
+     * @api
      */
-    public function getMissingPermissions()
+    public function restrict()
+    {
+        if ($this->getParameter('canvas') && $this->getParameter('redirect')) {
+            
+            //if we are in canvas mode (iframe), but we tried to access the 
+            //server directly
+             $pattern = '/^https?\:\/\/' . preg_quote($facebook::APP_BASE_URL). '/';
+
+             if (!$this->getRequest()->server->has('HTTP_REFERER')
+                 || !preg_match($pattern, $this->getRequest()->server->get('HTTP_REFERER'))) {
+
+                $url = $facebook->getCurrentAppUrl();
+                
+                return new RedirectResponse($url, 302);
+            }
+        }
+        
+        return null;
+    }
+    
+    protected function getMissingPermissions()
     {
         $needed = $this->getParameter('permissions');
 
         $userId = $this->getUser();
         if (!$userId) {
-            
-            if ($this->request && $this->request->query->get('state')) {
-                //something goes wrong 
-                //we get an authorisation but we are unable to get the user id
-                //website mode : because the app is not reachable from facebook
-                //canvas mode : because the app is in sandbox mode
-                throw new \Exception('Unable to get the user id');
-            }
-            $this->debugLog(__METHOD__.'()| could not retrieve the user id');
-             
             return $needed;
         }
-        
+
         $data = $this->api('/' . $userId . '/permissions');
-        
+
         if (!$data || !isset($data['data'][0])) {
             throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
         }
-        
+
         $current = array_keys($data['data'][0]);
         $missing = array_diff($needed, $current);
-        
+
         return $missing;
     }
-    
-    /**
-     * @api
-     */
-    public function redirect()
-    {
-        if ($this->getParameter('canvas') && $this->getParameter('redirect')) {
-            
-            $facebook = $this;
-            $this->dispatcher->addListener(SilexEvents::BEFORE, function (GetResponseEvent $event) use ($facebook) {
 
-                $request = $event->getRequest();
-                $facebook->setRequest($request);
-
-                //if we are in canvas mode (iframe), but we tried to access the 
-                //server directly
-                 $pattern = '/^https?\:\/\/' . preg_quote($facebook::APP_BASE_URL). '/';
-
-                 if (!$request->server->has('HTTP_REFERER')
-                     || !preg_match($pattern, $request->server->get('HTTP_REFERER'))) {
-
-                    $url = $facebook->getCurrentAppUrl();
-                    $response = new RedirectResponse($url, 302);
-                    $event->setResponse($response);
-                }
-            }, 1);
-        }
-    }
     
     /**
      * @api
@@ -167,18 +159,30 @@ class Facebook extends FacebookBase
      */
     public function auth($redirectUri = null)
     {
-        if (!$this->request) {
-            throw new \Exception('Request is undefined. Please use setRequest()');
+        $auth = false;
+        if (!$this->getUser()) {
+            
+            if ($this->request->query->get('state')) {
+                //something goes wrong
+                //we get an authorisation but we are unable to get the user id
+                //canvas mode : because the app is in sandbox mode
+                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or the access-token is expired ?");
+            }
+            $auth = true;
+            $missing = $this->getParameter('permissions');
+        } else {
+            $missing = $this->getMissingPermissions();
+            if (count($missing)>0) {
+                $auth = true;
+            }
         }
         
-        $missing = $this->getMissingPermissions();
-        
-        if (count($missing) > 0) {
+        if ($auth) {
             $params = array(
                 'client_id' => $this->getParameter('app_id'),
                 'scope' => implode(',', $missing)
             );
-
+            
             //if we are in canvas mode (iframe), we need to redirect the parent
             if ($this->getParameter('canvas')) {
 
@@ -198,9 +202,11 @@ top.location.href = "$url";
 </html>
 EOD;
                 return new Response($html, 403);
-
             } else {
-                throw new \Exception('Not implemented yet');
+                $params['redirect_uri'] = $redirectUri?$redirectUri:$this->getCurrentUrl();
+                $url = $this->getLoginUrl($params);
+                
+                return new RedirectResponse($url, 302);
             }
         }
         
@@ -214,10 +220,6 @@ EOD;
      */
     public function isFan()
     {
-        if (!$this->hasParameter('secret')) {
-            throw new \Exception('You need to set the "secret" parameter');
-        }
-
         $signedRequest = $this->getSignedRequest();
 
         if (null === $signedRequest || !isset($signedRequest['page']['liked'])) {
@@ -237,10 +239,6 @@ EOD;
      */
     public function isFanPageAdmin()
     {
-        if (!$this->hasParameter('secret')) {
-            throw new \Exception('You need to set the "secret" parameter');
-        }
-
         $signedRequest = $this->getSignedRequest();
         if (null === $signedRequest || !isset($signedRequest['page']['admin'])) {
             $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
@@ -259,10 +257,6 @@ EOD;
      */
     public function getFanPageId()
     {
-        if (!$this->hasParameter('secret')) {
-            throw new \Exception('You need to set the "secret" parameter');
-        }
-
         $signedRequest = $this->getSignedRequest();
         if (null === $signedRequest || !isset($signedRequest['page']['id'])) {
             $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
@@ -280,7 +274,7 @@ EOD;
      */
     public function getRelativeUrl()
     {
-        $qs = $this->request->getQueryString();
+        $qs = $this->getRequest()->getQueryString();
 
         $query = '';
         if (null !== $qs) {
@@ -298,7 +292,7 @@ EOD;
           }
         }
         
-        return $this->request->getBaseUrl().$this->request->getPathInfo().$query;
+        return $this->getRequest()->getPathInfo().$query;
     }
     
     /**
@@ -308,8 +302,8 @@ EOD;
      */
     public function getCurrentAppUrl()
     {
-        $url = $this->request->getScheme().'://' . self::APP_BASE_URL . '/' . $this->getParameter('namespace') . $this->getRelativeUrl();
-                
+        $url = $this->getRequest()->getScheme().'://' . self::APP_BASE_URL . '/' . $this->getParameter('namespace') . $this->getRelativeUrl();
+
         $this->debugLog(__METHOD__.'()| url='.$url);
         
         return $url;
@@ -320,7 +314,7 @@ EOD;
      */
     public function getCurrentUrl()
     {   
-        $url = $this->request->getScheme().'://'.$this->request->getHttpHost().$this->getRelativeUrl();
+        $url = $this->getRequest()->getScheme().'://'.$this->getRequest()->getHttpHost().$this->getRelativeUrl();
 
         $this->debugLog(__METHOD__.'()| url='.$url);
 
@@ -392,5 +386,17 @@ EOD;
 
         $sessionVarName = $this->constructSessionVariableName($key);
         $this->session->remove($sessionVarName);
-    } 
+    }
+    
+  /**
+   * Prints to the error log if you aren't in command line mode.
+   *
+   * @param string $msg Log message
+   */
+    protected static function errorLog($msg)
+    {
+        if (null !== $this->logger) {
+            $this->logger->addError($msg);
+        }
+    }
 }
