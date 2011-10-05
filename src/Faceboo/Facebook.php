@@ -165,9 +165,12 @@ class Facebook extends FacebookBase
      * @api
      * @param array $routes
      */
-    public function auth(Request $request, $redirectUri = null)
+    public function auth($redirectUri = null)
     {
-        $this->setRequest($request);
+        if (!$this->request) {
+            throw new \Exception('Request is undefined. Please use setRequest()');
+        }
+        
         $missing = $this->getMissingPermissions();
         
         if (count($missing) > 0) {

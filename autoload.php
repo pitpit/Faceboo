@@ -4,7 +4,6 @@ use Symfony\Component\ClassLoader\UniversalClassLoader;
 
 $loader = new UniversalClassLoader();
 $loader->registerNamespaces(array(
-    'Faceboo' => __DIR__.'/src',
-    'Symfony'   => __DIR__.'/vendor',
+    'Faceboo' => __DIR__.'/src'
 ));
 $loader->register();

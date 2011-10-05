@@ -1,49 +1,47 @@
 <?php
 
-namespace Faceboo\Extension;
+namespace Faceboo\Provider;
 
 use Silex\Application;
-use Silex\ExtensionInterface;
-use Silex\Extension\SessionExtension;
+use Silex\ServiceProviderInterface;
+use Silex\Provider\SessionServiceProvider;
 use Symfony\Component\ClassLoader\MapFileClassLoader;
 use Faceboo\Routing\Generator\UrlGenerator;
-use Faceboo\Facebook;;
+use Faceboo\Facebook;
+use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 
-class FaceBooExtension implements ExtensionInterface
+class FacebookServiceProvider implements ServiceProviderInterface
 {
     public function register(Application $app)
     {
         $app['url_generator'] = $app->share(function () use ($app) {
-            $app->flush();
-            
             $urlGenerator = new UrlGenerator($app['routes'], $app['request_context']);
             
-            if (isset($app['fb.canvas']) && $app['fb.canvas'] && isset($app['fb.namespace'])) {
-                $urlGenerator->setNamespace($app['fb.namespace']);
+            if (isset($app['facebook.canvas']) && $app['facebook.canvas'] && isset($app['facebook.namespace'])) {
+                $urlGenerator->setNamespace($app['facebook.namespace']);
             }
             
             return $urlGenerator;
         });
         
-        if (!isset($app['fb.class_path'])) {
-            $app['fb.class_path'] = __DIR__ . '/../../../vendor/php-sdk/src';
+        if (!isset($app['facebook.class_path'])) {
+            $app['facebook.class_path'] = __DIR__ . '/../../../vendor/php-sdk/src';
         }
         
-        require_once $app['fb.class_path'] . '/facebook.php';
+        require_once $app['facebook.class_path'] . '/facebook.php';
 
         $app['facebook'] = $app->share(function () use ($app) {
             
             if (!isset($app['session'])) {
-                $app->register(new SessionExtension());
+                $app->register(new SessionServiceProvider());
             }
-            $app->flush();
             
             $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'timeout', 'connect_timeout', 'permissions', 'redirect');
             $config = array();
             foreach($parameters as $parameter) {
-                if (isset($app['fb.'.$parameter])) {
+                if (isset($app['facebook.'.$parameter])) {
 
-                    $config[$parameter] = $app['fb.'.$parameter];
+                    $config[$parameter] = $app['facebook.'.$parameter];
                 }
             }
 
@@ -53,6 +51,10 @@ class FaceBooExtension implements ExtensionInterface
                     $config,
                     isset($app['monolog'])?$app['monolog']:null
                 );
+        });
+        
+        $app->before(function($request) use ($app) {
+            $app['facebook']->setRequest($request);
         });
     }
 }

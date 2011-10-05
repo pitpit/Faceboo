@@ -28,30 +28,35 @@ Register the namespace and the extension, in top of index.php:
 
     $app['autoloader']->registerNamespace('Faceboo', __DIR__.'/../vendor/faceboo/src');
 
-    $app->register(new Faceboo\Extension\FacebooExtension(), array(
-        'fb.app_id' => 'YOUR_APP_ID'
+    $app->register(new Faceboo\Provider\FacebookServiceProvider(), array(
+        'facebook.app_id' => 'YOUR_APP_ID'
     ));
 
 Parameters:
 
-* fb.app_id: you app id
-* fb.secret: your app secret
-* fb.permissions: array of facebook permissions needed to access the app
-* fb.namespace: your app namespace
-* fb.mode:
+* facebook.app_id: you app id
+* facebook.secret: your app secret
+* facebook.permissions: array of facebook permissions needed to access the app
+    * http://developers.facebook.com/docs/reference/api/permissions/
+* facebook.namespace: your app namespace
+* facebook.mode:
     * canvas: default mode, your app work under facebook iframe
     * website: not supported yet
-* fb.class_path: define another path to reach Facebook PHP SDK
-* fb.proxy: to make facebook api work behind non-transparent proxy
-* fb.redirect: true|false, disable the redirection when accessing the server, in canvas mode
+* facebook.class_path: define another path to reach Facebook PHP SDK
+* facebook.proxy: to make facebook api work behind non-transparent proxy
+* facebook.redirect: true|false, disable the redirection when accessing the server, in canvas mode
     
 Protect every routes and ask user for permissions:
     
+    $app['facebook.permissions'] = array();
 
     $app->match('/', function () use ($app) {
+
         if ($response = $app['facebook']->auth()) {
             return $response;
         }
+
+        //...
     });
 
 In canvas mode, protect your canvas app from direct access to the server:
@@ -113,16 +118,9 @@ Todo
 * fan page
     * does the user like the fan page ?
     * route according to local
-* custom auth on routes
 
-    Protect only some routes and ask user for permissions:
+Changelog
+---------
 
-        $app['facebook']->auth(array('test'));
-
-        $app->match('/', function () use ($app) {
-            //...
-        });
-
-        $app->match('/test', function () use ($app) {
-            //...
-        })->bind('test');
+* updated to last version of Silex
+* updated parameter prefix (now "facebook")
