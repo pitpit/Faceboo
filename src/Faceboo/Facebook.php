@@ -142,10 +142,21 @@ class Facebook extends FacebookBase
             return $needed;
         }
 
-        $data = $this->api('/' . $userId . '/permissions');
+        try {
+            $data = $this->api('/' . $userId . '/permissions');
 
-        if (!$data || !isset($data['data'][0])) {
-            throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
+            if (!$data || !isset($data['data'][0])) {
+                throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
+            }
+        } catch(\FacebookApiException $e) {
+            
+            //user has revoked the permissions
+            //try to get the permissions again
+            if ($e->getType() === 'OAuthException') {
+                return $needed;
+            } else {
+                throw $e;
+            }
         }
 
         $current = array_keys($data['data'][0]);
@@ -164,7 +175,7 @@ class Facebook extends FacebookBase
         $auth = false;
         if (!$this->getUser()) {
             
-            if ($this->request->query->get('state')) {
+            if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
                 //something goes wrong
                 //we get an authorisation but we are unable to get the user id
                 //canvas mode : because the app is in sandbox mode

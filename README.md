@@ -19,7 +19,7 @@ Parameters
 * app_id: you app id
 * secret: your app secret
 * permissions: array of facebook permissions needed to access the app
-    * http://developers.com/docs/reference/api/permissions/
+    * http://developers.facebook.com/docs/reference/api/permissions/
 * namespace: your app namespace
 * canvas: true if your app work under a facebook iframe
 * proxy: to make facebook requests work behind non-transparent proxy

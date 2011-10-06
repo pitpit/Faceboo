@@ -31,8 +31,11 @@ class Configuration implements ConfigurationInterface
             ->scalarNode('connect_timeout')->end()
             ->scalarNode('timeout')->end()
             ->scalarNode('proxy')->end()
-            ->arrayNode('permissions')->end()
-            ->arrayNode('redirect')->end()
+            ->arrayNode('permissions')
+                ->useAttributeAsKey('name')
+                ->prototype('scalar')->end()
+            ->end()
+            ->scalarNode('redirect')->end()
         ->end();
         
         // Here you should define the parameters that are allowed to
