@@ -14,11 +14,13 @@
         <service id="facebook" class="%facebook.class%">
             <argument>%faceboo_facebook.config%</argument>
             <argument type="service" id="session" />
+            <argument type="service" id="logger" on-invalid="null" />
         </service>
         
         <service id="faceboo_facebook.listener" class="%faceboo_facebook.listener.class%">
             <argument type="service" id="facebook" />
             <tag name="kernel.event_listener" event="kernel.request" method="onKernelRequest" />
+            
         </service>
     </services>
 </container>

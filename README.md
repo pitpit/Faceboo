@@ -13,6 +13,21 @@ Get the sources:
     cd faceboo
     git submodule update --init
 
+Parameters
+----------
+
+* app_id: you app id
+* secret: your app secret
+* permissions: array of facebook permissions needed to access the app
+    * http://developers.com/docs/reference/api/permissions/
+* namespace: your app namespace
+* canvas: true if your app work under a facebook iframe
+* proxy: to make facebook requests work behind non-transparent proxy
+* timeout :
+* connect_timeout
+* redirect: true|false, disable the redirection when accessing the server, in canvas mode
+* class_path (silex only): define another path to reach Facebook PHP SDK
+
 Usage
 -----
 
@@ -26,19 +41,8 @@ Register the namespace and the extension, in top of index.php:
         'facebook.app_id' => 'YOUR_APP_ID'
     ));
 
-Parameters:
+The parameters are formated as : facebook.<NAME>
 
-* facebook.app_id: you app id
-* facebook.secret: your app secret
-* facebook.permissions: array of facebook permissions needed to access the app
-    * http://developers.facebook.com/docs/reference/api/permissions/
-* facebook.namespace: your app namespace
-* facebook.mode:
-    * canvas: default mode, your app work under facebook iframe
-    * website: not supported yet
-* facebook.class_path: define another path to reach Facebook PHP SDK
-* facebook.proxy: to make facebook api work behind non-transparent proxy
-* facebook.redirect: true|false, disable the redirection when accessing the server, in canvas mode
 
 Login and ask user for permissions if needed:
     
@@ -120,6 +124,26 @@ Register the bundle in app/AppKernel.php:
             new Faceboo\FacebookBundle\FacebooFacebookBundle(),
         );
 
+Add the following in app/config/config.yml:
+
+    faceboo_facebook:
+        app_id: 297720976910223
+        secret: b151a27351e91dab2ee18986d8c47052
+
+Parameters:
+
+* facebook.app_id: you app id
+* facebook.secret: your app secret
+* facebook.permissions: array of facebook permissions needed to access the app
+    * http://developers.facebook.com/docs/reference/api/permissions/
+* facebook.namespace: your app namespace
+* facebook.canvas: true if your app work under a facebook iframe
+* facebook.proxy: to make facebook requests work behind non-transparent proxy
+* facebook.timeout
+* facebook.connect_timeout
+* facebook.redirect: true|false, disable the redirection when accessing the server, in canvas mode
+* facebook.class_path: define another path to reach Facebook PHP SDK
+
 Login and ask user for permissions if needed:
     
     public function indexAction()
@@ -140,6 +164,7 @@ Todo
 
 Changelog
 ---------
+* added symfony support
 * app_id and secret are now mandatory
 * updated to last version of Silex
 * updated parameter prefix (now "facebook")

@@ -67,6 +67,8 @@ class Facebook extends FacebookBase
             'secret' => isset($this->parameters['secret'])?$this->parameters['secret']:null,
         );
 
+        $this->session->start();
+
         //we want to avoir the session_start in parent::__construct()
         \BaseFacebook::__construct($baseParameters);
     }
@@ -166,7 +168,7 @@ class Facebook extends FacebookBase
                 //something goes wrong
                 //we get an authorisation but we are unable to get the user id
                 //canvas mode : because the app is in sandbox mode
-                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or the access-token is expired ?");
+                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
             }
             $auth = true;
             $missing = $this->getParameter('permissions');
@@ -292,7 +294,7 @@ EOD;
           }
         }
         
-        return $this->getRequest()->getPathInfo().$query;
+        return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo().$query;
     }
     
     /**
@@ -358,6 +360,9 @@ EOD;
         }
 
         $sessionVarName = $this->constructSessionVariableName($key);
+        
+        $this->debugLog(__METHOD__.'setPersistentData()| key='.$key.', value='.$value);
+        
         $this->session->set($sessionVarName, $value);
     }
 
@@ -372,7 +377,11 @@ EOD;
 
         $sessionVarName = $this->constructSessionVariableName($key);
         
-        return ($this->session->has($sessionVarName))?$this->session->get($sessionVarName):$default;
+        $value = ($this->session->has($sessionVarName))?$this->session->get($sessionVarName):$default;
+         
+        $this->debugLog(__METHOD__.'setPersistentData()| key='.$key.', value='.$value);
+
+        return $value;
     }
 
     /**
@@ -386,17 +395,5 @@ EOD;
 
         $sessionVarName = $this->constructSessionVariableName($key);
         $this->session->remove($sessionVarName);
-    }
-    
-  /**
-   * Prints to the error log if you aren't in command line mode.
-   *
-   * @param string $msg Log message
-   */
-    protected static function errorLog($msg)
-    {
-        if (null !== $this->logger) {
-            $this->logger->addError($msg);
-        }
     }
 }
