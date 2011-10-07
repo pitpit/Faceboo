@@ -92,7 +92,7 @@ class Facebook extends FacebookBase
         return array(
             'canvas' => true,
             'permissions' => array(),
-            'redirect' => true
+            'protect' => true
         );
     }
     
@@ -113,9 +113,9 @@ class Facebook extends FacebookBase
     /**
      * @api
      */
-    public function restrict()
+    public function protect()
     {
-        if ($this->getParameter('canvas') && $this->getParameter('redirect')) {
+        if ($this->getParameter('canvas') && $this->getParameter('protect')) {
             
             //if we are in canvas mode (iframe), but we tried to access the 
             //server directly
@@ -133,14 +133,9 @@ class Facebook extends FacebookBase
         return null;
     }
     
-    protected function getMissingPermissions()
+    public function getMissingPermissions($userId)
     {
         $needed = $this->getParameter('permissions');
-
-        $userId = $this->getUser();
-        if (!$userId) {
-            return $needed;
-        }
 
         try {
             $data = $this->api('/' . $userId . '/permissions');
@@ -149,9 +144,7 @@ class Facebook extends FacebookBase
                 throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
             }
         } catch(\FacebookApiException $e) {
-            
-            //user has revoked the permissions
-            //try to get the permissions again
+            //user has revoked all the permissions
             if ($e->getType() === 'OAuthException') {
                 return $needed;
             } else {
@@ -173,7 +166,8 @@ class Facebook extends FacebookBase
     public function auth($redirectUri = null)
     {
         $auth = false;
-        if (!$this->getUser()) {
+        $userId = $this->getUser();
+        if (!$userId) {
             
             if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
                 //something goes wrong
@@ -184,7 +178,7 @@ class Facebook extends FacebookBase
             $auth = true;
             $missing = $this->getParameter('permissions');
         } else {
-            $missing = $this->getMissingPermissions();
+            $missing = $this->getMissingPermissions($userId);
             if (count($missing)>0) {
                 $auth = true;
             }
@@ -227,7 +221,8 @@ EOD;
     }
     
     /**
-     * Is the user fan of the facebook fan page where the app run (in a tab)
+     * Is the user fan of the facebook fan page where the app run.
+     * - tabbed app only
      * 
      * @api
      */
@@ -245,12 +240,13 @@ EOD;
     }
     
     /**
-     * Does the user admin the fan page where the app run (in a tab)
+     * Does the user admin the fan page where the app run.
+     * - tabbed app only
      * 
      * @api
      * @return string
      */
-    public function isFanPageAdmin()
+    public function isPageAdmin()
     {
         $signedRequest = $this->getSignedRequest();
         if (null === $signedRequest || !isset($signedRequest['page']['admin'])) {
@@ -263,12 +259,13 @@ EOD;
     }
     
     /**
-     * Get the facebook fan page id where the run (in a tab)
+     * Get the facebook fan page id where the app run.
+     * - tabbed app only
      * 
      * @api
      * @return string|null
      */
-    public function getFanPageId()
+    public function getPageId()
     {
         $signedRequest = $this->getSignedRequest();
         if (null === $signedRequest || !isset($signedRequest['page']['id'])) {
@@ -278,6 +275,21 @@ EOD;
         }
         
         return $signedRequest['page']['id'];
+    }
+    
+    /**
+     * Get every 
+     * @param type $id 
+     */
+    public function getPagePosts($pageId)
+    {
+        $data = $this->api('/' . $pageId . '/posts');
+
+        if (!$data || !isset($data['data'][0])) {
+            throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
+        }
+        
+        return $data['data'];
     }
     
     /**

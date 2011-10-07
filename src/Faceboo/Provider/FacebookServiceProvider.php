@@ -37,7 +37,7 @@ class FacebookServiceProvider implements ServiceProviderInterface
                 $app->register(new SessionServiceProvider());
             }
             
-            $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'timeout', 'connect_timeout', 'permissions', 'redirect');
+            $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'timeout', 'connect_timeout', 'permissions', 'protect');
             $config = array();
             foreach($parameters as $parameter) {
                 if (isset($app['facebook.'.$parameter])) {

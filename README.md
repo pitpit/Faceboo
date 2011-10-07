@@ -3,6 +3,12 @@ Faceboo
 
 Integrate Facebook SDK into Silex micro-framework (FacebookServiceProvider) or Symfony2 (FacebooBundle).
 
+Provide several methods to do common tasks with Facebook.
+* authentification
+* permissions management
+* fan-gate management
+
+
 Installation
 ------------
 
@@ -25,7 +31,7 @@ Parameters
 * proxy: to make facebook requests work behind non-transparent proxy
 * timeout :
 * connect_timeout
-* redirect: true|false, disable the redirection when accessing the server, in canvas mode
+* protect: true|false, disable the redirection when accessing the server, in canvas mode
 * class_path (silex only): define another path to reach Facebook PHP SDK
 
 Usage
@@ -58,7 +64,7 @@ Login and ask user for permissions if needed:
 In canvas mode, protect your canvas app from direct access to the source server:
 
     $app->before(function(Request $request) use ($app) {
-        if ($response = $app['facebook']->restrict()) return $response;
+        if ($response = $app['facebook']->protect()) return $response;
     });
 
     * do not rely on it for security, it's based on HTTP_REFERER so it's not safe
@@ -141,7 +147,7 @@ Parameters:
 * facebook.proxy: to make facebook requests work behind non-transparent proxy
 * facebook.timeout
 * facebook.connect_timeout
-* facebook.redirect: true|false, disable the redirection when accessing the server, in canvas mode
+* facebook.protect: true|false, disable the redirection when accessing the server, in canvas mode
 * facebook.class_path: define another path to reach Facebook PHP SDK
 
 Login and ask user for permissions if needed:

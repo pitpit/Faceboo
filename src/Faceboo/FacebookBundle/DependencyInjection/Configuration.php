@@ -35,7 +35,7 @@ class Configuration implements ConfigurationInterface
                 ->useAttributeAsKey('name')
                 ->prototype('scalar')->end()
             ->end()
-            ->scalarNode('redirect')->end()
+            ->scalarNode('protect')->end()
         ->end();
         
         // Here you should define the parameters that are allowed to
