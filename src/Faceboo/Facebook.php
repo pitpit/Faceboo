@@ -276,20 +276,125 @@ EOD;
         
         return $signedRequest['page']['id'];
     }
-    
-    /**
-     * Get every 
-     * @param type $id 
-     */
-    public function getPagePosts($pageId)
-    {
-        $data = $this->api('/' . $pageId . '/posts');
 
-        if (!$data || !isset($data['data'][0])) {
+        /**
+     * Get every posts of a page of multiple pages
+     * 
+     * 
+     * @param string $pageId
+     */
+    public function getPage($pageId)
+    {
+        $response = $this->api("/$pageId");
+
+        if (!$response) {
             throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
         }
         
-        return $data['data'];
+        return $response;
+    }
+    
+    /**
+     * Get every posts of a page of multiple pages
+     * 
+     * 
+     * @param array $pageIds 
+     */
+    public function getMultiPages(array $pageIds)
+    {
+        if (count($pageIds) === 0) {
+            return array();
+        } else if (count($pageIds) === 1) {
+            return array($this->getPage($pageIds[0]));
+        }
+        
+        $requests = array();
+        foreach($pageIds as $pageId) {
+            $requests[] =  array('method' => 'GET', 'relative_url' => "/$pageId");
+        }
+        
+        $response = $this->api('/', 'POST', array(
+            'batch' => json_encode($requests)
+        ));
+        
+        if (!$response) {
+            throw new \Exception('Unable to get the result of batch request');
+        }
+        
+        $collection = array();
+        foreach($response as $result) {
+            if ($result['code'] == 200 && isset($result['body'])) {
+                $data = json_decode($result['body'], true);
+                if (!$data) {
+                    throw new \Exception('Unable decode json');
+                }
+                $collection = array_merge($collection, array($data));
+            } else {
+                throw new \Exception('Unable to process one response of the batch');
+            }
+        }
+        
+        return $collection;
+    }
+    
+    /**
+     * Get every posts of a page of multiple pages
+     * 
+     * 
+     * @param string $pageId
+     */
+    public function getPagePosts($pageId)
+    {
+        $response = $this->api("/$pageId/posts");
+
+        if (!$response || !isset($response['data'])) {
+            throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
+        }
+        
+        return $response['data'];
+    }
+    
+    /**
+     * Get every posts of a page of multiple pages
+     * 
+     * 
+     * @param array $pageIds 
+     */
+    public function getMultiPagesPosts(array $pageIds)
+    {
+        if (count($pageIds) === 0) {
+            return array();
+        } else if (count($pageIds) === 1) {
+            return array($this->getPagePosts($pageIds[0]));
+        }
+        
+        $requests = array();
+        foreach($pageIds as $pageId) {
+            $requests[] =  array('method' => 'GET', 'relative_url' => "/$pageId/posts");
+        }
+        
+        $response = $this->api('/', 'POST', array(
+            'batch' => json_encode($requests)
+        ));
+        
+        if (!$response) {
+            throw new \Exception('Unable to get the result of batch request');
+        }
+        
+        $collection = array();
+        foreach($response as $result) {
+            if ($result['code'] == 200 && isset($result['body'])) {
+                $data = json_decode($result['body'], true);
+                if (!$data) {
+                    throw new \Exception('Unable decode json');
+                }
+                $collection = array_merge($collection, $data['data']);
+            } else {
+                throw new \Exception('Unable to process one response of the batch');
+            }
+        }
+        
+        return $collection;
     }
     
     /**
