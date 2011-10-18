@@ -436,8 +436,12 @@ EOD;
      */
     public function getCurrentAppUrl()
     {
-        $url = $this->getRequest()->getScheme().'://' . self::APP_BASE_URL . '/' . $this->getParameter('namespace') . $this->getRelativeUrl();
-
+        if (!$this->hasParameter('namespace') && $this->getParameter('canvas') && isset($_SERVER['HTTP_REFERER'])) {
+            $url = rtrim($_SERVER['HTTP_REFERER'], '/');
+        } else {
+            $url = $this->getRequest()->getScheme().'://' . self::APP_BASE_URL . '/' . $this->getParameter('namespace') . $this->getRelativeUrl();
+        }
+        
         $this->debugLog(__METHOD__.'()| url='.$url);
         
         return $url;
