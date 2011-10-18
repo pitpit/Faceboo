@@ -398,8 +398,6 @@ EOD;
             return ($a['created_time'] < $b['created_time'])?1:-1;
         });
         
-        var_dump($collection);die();
-        
         return $collection;
     }
     
