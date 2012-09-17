@@ -14,8 +14,9 @@ Installation
 Composer
 
 * modify your composer.json
-    ```json#composer.json
-    {
+    
+  ```
+  {
     "repositories": {
         "faceboo": {
             "type": "package",
@@ -30,15 +31,20 @@ Composer
             }
         }
     },
-    "require": { ...
+    "require": { ... }
     }
-    }```
+    ```
+
 * Then add to your require section in composer.json following line
-    ```json"require": {
+    ```
+    "require": {
         "faceboo": "1.*"
-    }```
+    }
+    ```
 * Finally update your composer:
- ``` $php composer.phar update```
+    ```
+    $php composer.phar update
+    ```
 Get the sources:
 
     cd vendor
