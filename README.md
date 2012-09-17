@@ -45,6 +45,8 @@ Composer
     ```
     $php composer.phar update
     ```
+
+
 Get the sources:
 
     cd vendor
