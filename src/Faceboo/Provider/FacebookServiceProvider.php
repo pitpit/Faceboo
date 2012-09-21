@@ -26,7 +26,7 @@ class FacebookServiceProvider implements ServiceProviderInterface
         });
         
         if (!isset($app['facebook.class_path'])) {
-            $app['facebook.class_path'] = __DIR__ . '/../../../vendor/php-sdk/src';
+            $app['facebook.class_path'] = __DIR__ . '/../../../vendor/facebook-php-sdk/src';
         }
         
         require_once $app['facebook.class_path'] . '/facebook.php';
