@@ -11,6 +11,41 @@ Provide several methods to do common tasks with Facebook.
 
 Installation
 ------------
+Composer
+
+* modify your composer.json
+    
+  ```
+  {
+    "repositories": {
+        "faceboo": {
+            "type": "package",
+            "package": {
+                "name": "faceboo",
+                "version": "1.0",
+                "source": {
+                    "url": "https://github.com/pitpit/Faceboo.git",
+                    "type": "git",
+                    "reference": "master"
+                }
+            }
+        }
+    },
+    "require": { ... }
+    }
+    ```
+
+* Then add to your require section in composer.json following line
+    ```
+    "require": {
+        "faceboo": "1.*"
+    }
+    ```
+* Finally update your composer:
+    ```
+    $php composer.phar update
+    ```
+
 
 Get the sources:
 
