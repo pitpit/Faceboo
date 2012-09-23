@@ -55,7 +55,4 @@ class FacebookServiceProvider implements ServiceProviderInterface
             $app['facebook']->setRequest($request);
         });
     }
-    public function boot(Application $app)
-    {
-    }
 }
