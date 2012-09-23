@@ -119,7 +119,8 @@ class Facebook extends FacebookBase
             
             //if we are in canvas mode (iframe), but we tried to access the 
             //server directly
-             $pattern = '/^https?\:\/\/' . preg_quote($facebook::APP_BASE_URL). '/';
+
+        	$pattern = '/^https?\:\/\/' . preg_quote(self::APP_BASE_URL). '/';
 
              if (!$this->getRequest()->server->has('HTTP_REFERER')
                  || !preg_match($pattern, $this->getRequest()->server->get('HTTP_REFERER'))) {
