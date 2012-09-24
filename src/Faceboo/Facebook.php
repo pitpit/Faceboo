@@ -125,7 +125,7 @@ class Facebook extends FacebookBase
              if (!$this->getRequest()->server->has('HTTP_REFERER')
                  || !preg_match($pattern, $this->getRequest()->server->get('HTTP_REFERER'))) {
 
-                $url = $facebook->getCurrentAppUrl();
+                $url = self::getCurrentAppUrl();
                 
                 return new RedirectResponse($url, 302);
             }
