@@ -5,7 +5,7 @@ namespace Faceboo;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Session;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Facebook as FacebookBase;
@@ -119,12 +119,13 @@ class Facebook extends FacebookBase
             
             //if we are in canvas mode (iframe), but we tried to access the 
             //server directly
-             $pattern = '/^https?\:\/\/' . preg_quote($facebook::APP_BASE_URL). '/';
+
+        	$pattern = '/^https?\:\/\/' . preg_quote(self::APP_BASE_URL). '/';
 
              if (!$this->getRequest()->server->has('HTTP_REFERER')
                  || !preg_match($pattern, $this->getRequest()->server->get('HTTP_REFERER'))) {
 
-                $url = $facebook->getCurrentAppUrl();
+                $url = self::getCurrentAppUrl();
                 
                 return new RedirectResponse($url, 302);
             }
