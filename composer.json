@@ -1,7 +1,7 @@
 {
     "name": "pitpit/faceboo",
     "type": "library",
-    "description": "Faceboo",
+    "description": "Integrate Facebook SDK into Symfony2 or Silex",
     "keywords": [],
     "license": "MIT",
     "authors": [
