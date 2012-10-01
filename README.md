@@ -14,9 +14,7 @@ Installation
 
 Add faceboo to your dependencies with composer:
 
-    ```
     php composer.phar require pitpit/faceboo:dev-master
-    ```
 
 Or get the sources:
 
