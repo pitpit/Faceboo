@@ -19,10 +19,10 @@ class UrlGenerator extends BaseUrlGenerator
         return $this->context->getScheme().'://' . Facebook::APP_BASE_URL . '/' . $this->namespace;
     }
     
-    public function generate($name, array $parameters = array(), $absolute = false)
+		public function generate($name, $parameters = array(), $referenceType = self::ABSOLUTE_PATH)
     {
-        if (null === $this->namespace || !$absolute) {
-            return parent::generate($name, $parameters, $absolute);
+        if (null === $this->namespace || !$referenceType) {
+            return parent::generate($name, $parameters, $referenceType);
         } else {
             return $this->getBaseUrl() . parent::generate($name, $parameters, false);
         }
