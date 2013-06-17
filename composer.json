@@ -15,6 +15,7 @@
         }
     ],
     "require": {
+        "symfony/routing": "2.1.*",
         "php": ">=5.3.0"
     },
     "autoload": {
