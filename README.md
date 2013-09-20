@@ -20,7 +20,7 @@ To use Faceboo with Silex <= 1.0, please use:
 
     php composer.phar require "pitpit/faceboo":"1.0.*@dev"
 
-Or get the sources:
+Or get the sources for 1.0.*@dev:
 
     cd vendor
     git clone https://github.com/dpitard/Faceboo.git faceboo
@@ -59,7 +59,7 @@ The parameters are formated as : facebook.<NAME>
 
 
 Login and ask user for permissions if needed:
-    
+
     $app['facebook.permissions'] = array();
 
     $app->match('/', function () use ($app) {
@@ -82,7 +82,7 @@ In a fan page tab, is the current user admin of the fan page :
     $app->match('/', function () use ($app) {
 
         $isAdmin = $app['facebook']->isFanPageAdmin();
-        
+
         //...
     }
 
@@ -93,7 +93,7 @@ In a fan page tab, what is the fan page id :
     $app->match('/', function () use ($app) {
 
         $pageId = $app['facebook']->getFanPageId();
-        
+
         //...
     }
 
@@ -104,7 +104,7 @@ In a fan page tab, does the current user like the fan page :
     $app->match('/', function () use ($app) {
 
         $isFan = $app['facebook']->isFan();
-        
+
         //...
     }
 
@@ -159,11 +159,11 @@ Parameters:
 * facebook.class_path: define another path to reach Facebook PHP SDK
 
 Login and ask user for permissions if needed:
-    
+
     public function indexAction()
-    {   
+    {
         if ($response = $this->get('facebook')->auth()) return $response;
-        
+
         //...
     }
 
