@@ -5,25 +5,29 @@ namespace Faceboo;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Facebook as FacebookBase;
 
-
+/**
+ * Facebook
+ *
+ * @author Damien Pitard <damien.pitard@gmail.com>
+ */
 class Facebook extends FacebookBase
 {
     protected $session;
     protected $logger;
     protected $parameters;
     protected $request;
-    
+
     const APP_BASE_URL = 'apps.facebook.com';
-    
+
     /**
      * store a debug trace
-     * 
-     * @param string $message 
+     *
+     * @param string $message
      */
     protected  function debugLog($message)
     {
@@ -35,33 +39,33 @@ class Facebook extends FacebookBase
     /**
      * Constructor
      */
-    public function __construct(array $parameters = array(), Session $session, $logger = null)
+    public function __construct(array $parameters = array(), SessionInterface $session, $logger = null)
     {
         $this->session = $session;
         $this->logger = $logger;
 
         $this->parameters = array_merge($this->getDefaultParameters(), $parameters);
-        
+
         if (!$this->hasParameter('app_id')) {
-            throw new \Exception('You need to set the "app_id" parameter');
+            throw new \Exception('Missing "app_id" parameter');
         }
-        
+
         if (!$this->hasParameter('secret')) {
-            throw new \Exception('You need to set the "secret" parameter');
+            throw new \Exception('Missing "secret" parameter');
         }
 
         if ($this->hasParameter('timeout')) {
              self::$CURL_OPTS[CURLOPT_TIMEOUT] = $this->getParameter('timeout');
         }
-        
+
         if ($this->hasParameter('connect_timeout')) {
              self::$CURL_OPTS[CURLOPT_CONNECTTIMEOUT] = $this->getParameter('connect_timeout');
         }
-        
+
         if ($this->hasParameter('proxy')) {
              self::$CURL_OPTS[CURLOPT_PROXY] = $this->getParameter('proxy');
         }
-        
+
         $baseParameters = array(
             'appId' => isset($this->parameters['app_id'])?$this->parameters['app_id']:null,
             'secret' => isset($this->parameters['secret'])?$this->parameters['secret']:null,
@@ -72,52 +76,52 @@ class Facebook extends FacebookBase
         //we want to avoir the session_start in parent::__construct()
         \BaseFacebook::__construct($baseParameters);
     }
-    
+
     public function getRequest()
     {
         if (null === $this->request) {
             throw new \Exception('Request is undefined. Use setRequest()');
         }
-        
+
         return $this->request;
     }
-    
+
     public function setRequest(Request $request)
     {
         $this->request = $request;
     }
-    
+
     protected function getDefaultParameters()
     {
         return array(
-            'canvas' => true,
+            'canvas' => false,
             'permissions' => array(),
             'protect' => true
         );
     }
-    
+
     public function getParameter($name)
     {
         if (!isset($this->parameters[$name])) {
             throw new \Exception(sprintf('Undefined parameters parameter "%s"', $name));
         }
-        
+
         return $this->parameters[$name];
     }
-    
+
     public function hasParameter($name)
     {
         return (isset($this->parameters[$name]));
     }
-    
+
     /**
      * @api
      */
     public function protect()
     {
         if ($this->getParameter('canvas') && $this->getParameter('protect')) {
-            
-            //if we are in canvas mode (iframe), but we tried to access the 
+
+            //if we are in canvas mode (iframe), but we tried to access the
             //server directly
 
         	$pattern = '/^https?\:\/\/' . preg_quote(self::APP_BASE_URL). '/';
@@ -126,17 +130,23 @@ class Facebook extends FacebookBase
                  || !preg_match($pattern, $this->getRequest()->server->get('HTTP_REFERER'))) {
 
                 $url = self::getCurrentAppUrl();
-                
+
                 return new RedirectResponse($url, 302);
             }
         }
-        
+
         return null;
     }
-    
-    public function getMissingPermissions($userId)
+
+    public function getMissingPermissions()
     {
+        $userId = $this->getUser();
         $needed = $this->getParameter('permissions');
+
+        if (!$userId) {
+
+            return $needed;
+        }
 
         try {
             $data = $this->api('/' . $userId . '/permissions');
@@ -159,42 +169,42 @@ class Facebook extends FacebookBase
         return $missing;
     }
 
-    
+
     /**
      * @api
      * @param array $routes
      */
-    public function auth($redirectUri = null)
+    public function auth($params = array(), $force = false)
     {
-        $auth = false;
-        $userId = $this->getUser();
-        if (!$userId) {
-            
-            if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
-                //something goes wrong
-                //we get an authorisation but we are unable to get the user id
-                //canvas mode : because the app is in sandbox mode
-                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
-            }
-            $auth = true;
-            $missing = $this->getParameter('permissions');
-        } else {
-            $missing = $this->getMissingPermissions($userId);
-            if (count($missing)>0) {
-                $auth = true;
-            }
+        // $userId = $this->getUser();
+        // if (!$userId) {
+        //     if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
+        //         //something goes wrong
+        //         //we get an authorisation but we are unable to get the user id
+        //         //canvas mode : because the app is in sandbox mode
+        //         throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
+        //     }
+        // }
+
+        $missing = $this->getMissingPermissions();
+        $needAuth = (count($missing) > 0);
+        if ($needAuth && !$force  && $this->request->query->get('state')) {
+            $needAuth = false;
         }
-        
-        if ($auth) {
-            $params = array(
+
+        if ($needAuth) {
+            $params = array_merge(array(
                 'client_id' => $this->getParameter('app_id'),
-                'scope' => implode(',', $missing)
-            );
-            
+                'scope' => implode(',', $missing),
+            ), $params);
+
             //if we are in canvas mode (iframe), we need to redirect the parent
             if ($this->getParameter('canvas')) {
 
-                $params['redirect_uri'] = $redirectUri?$redirectUri:$this->getCurrentAppUrl();
+                if (!isset($params['redirect_uri'])) {
+                    $params['redirect_uri'] = $this->getCurrentAppUrl();
+                }
+
                 $url = $this->getLoginUrl($params);
 
 $html = <<< EOD
@@ -209,22 +219,44 @@ top.location.href = "$url";
 <body></body>
 </html>
 EOD;
+
                 return new Response($html, 403);
             } else {
-                $params['redirect_uri'] = $redirectUri?$redirectUri:$this->getCurrentUrl();
+                if (!isset($params['redirect_uri'])) {
+                    $params['redirect_uri'] = $this->getCurrentUrl();
+                }
                 $url = $this->getLoginUrl($params);
-                
+
                 return new RedirectResponse($url, 302);
             }
         }
-        
+
         return null;
     }
-    
+
+    public function feed($caption, $link, $params = array())
+    {
+        $url = $this->getUrl(
+            'www',
+            'dialog/feed',
+            array_merge(
+                array(
+                    'app_id' => $this->getAppId(),
+                    'link' => $link, // possibly overwritten
+                    'caption' => $caption,
+                    'display' => 'page'
+                ),
+                $params
+            )
+        );
+
+        return new RedirectResponse($url, 302);
+    }
+
     /**
      * Is the user fan of the facebook fan page where the app run.
      * - tabbed app only
-     * 
+     *
      * @api
      */
     public function isFan()
@@ -233,17 +265,17 @@ EOD;
 
         if (null === $signedRequest || !isset($signedRequest['page']['liked'])) {
             $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
-            
+
             return false;
         }
-        
+
         return $signedRequest['page']['liked'];
     }
-    
+
     /**
      * Does the user admin the fan page where the app run.
      * - tabbed app only
-     * 
+     *
      * @api
      * @return string
      */
@@ -252,17 +284,17 @@ EOD;
         $signedRequest = $this->getSignedRequest();
         if (null === $signedRequest || !isset($signedRequest['page']['admin'])) {
             $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
-            
+
             return false;
         }
-        
+
         return $signedRequest['page']['admin'];
     }
-    
+
     /**
      * Get the facebook fan page id where the app run.
      * - tabbed app only
-     * 
+     *
      * @api
      * @return string|null
      */
@@ -271,17 +303,17 @@ EOD;
         $signedRequest = $this->getSignedRequest();
         if (null === $signedRequest || !isset($signedRequest['page']['id'])) {
             $this->debugLog(__METHOD__.'()| The app have not been ran from from a page tab');
-            
+
             return null;
         }
-        
+
         return $signedRequest['page']['id'];
     }
 
         /**
      * Get every posts of a page of multiple pages
-     * 
-     * 
+     *
+     *
      * @param string $pageId
      */
     public function getPage($pageId)
@@ -291,15 +323,15 @@ EOD;
         if (!$response) {
             throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
         }
-        
+
         return $response;
     }
-    
+
     /**
      * Get every posts of a page of multiple pages
-     * 
-     * 
-     * @param array $pageIds 
+     *
+     *
+     * @param array $pageIds
      */
     public function getMultiPages(array $pageIds)
     {
@@ -308,22 +340,22 @@ EOD;
         } else if (count($pageIds) === 1) {
             return array($this->getPage($pageIds[0]));
         }
-        
+
         $requests = array();
-        foreach($pageIds as $pageId) {
+        foreach ($pageIds as $pageId) {
             $requests[] =  array('method' => 'GET', 'relative_url' => "/$pageId");
         }
-        
+
         $response = $this->api('/', 'POST', array(
             'batch' => json_encode($requests)
         ));
-        
+
         if (!$response) {
             throw new \Exception('Unable to get the result of batch request');
         }
-        
+
         $collection = array();
-        foreach($response as $result) {
+        foreach ($response as $result) {
             if ($result['code'] == 200 && isset($result['body'])) {
                 $data = json_decode($result['body'], true);
                 if (!$data) {
@@ -334,14 +366,14 @@ EOD;
                 throw new \Exception('Unable to process one response of the batch');
             }
         }
-        
+
         return $collection;
     }
-    
+
     /**
      * Get every posts of a page of multiple pages
-     * 
-     * 
+     *
+     *
      * @param string $pageId
      */
     public function getPagePosts($pageId)
@@ -351,15 +383,15 @@ EOD;
         if (!$response || !isset($response['data'])) {
             throw new \Exception(sprintf('Unable to get permissions of user %s', $userId));
         }
-        
+
         return $response['data'];
     }
-    
+
     /**
      * Get every posts of a page of multiple pages
-     * 
-     * 
-     * @param array $pageIds 
+     *
+     *
+     * @param array $pageIds
      */
     public function getMultiPagesPosts(array $pageIds)
     {
@@ -368,20 +400,20 @@ EOD;
         } else if (count($pageIds) === 1) {
             return array($this->getPagePosts($pageIds[0]));
         }
-        
+
         $requests = array();
         foreach($pageIds as $pageId) {
             $requests[] =  array('method' => 'GET', 'relative_url' => "/$pageId/posts");
         }
-        
+
         $response = $this->api('/', 'POST', array(
             'batch' => json_encode($requests)
         ));
-        
+
         if (!$response) {
             throw new \Exception('Unable to get the result of batch request');
         }
-        
+
         $collection = array();
         foreach($response as $result) {
             if ($result['code'] == 200 && isset($result['body'])) {
@@ -398,13 +430,13 @@ EOD;
         usort($collection, function($a, $b) {
             return ($a['created_time'] < $b['created_time'])?1:-1;
         });
-        
+
         return $collection;
     }
-    
+
     /**
      * Get the relative URL (without scheme, hostname and port)
-     * 
+     *
      * @return string
      */
     public function getRelativeUrl()
@@ -426,14 +458,14 @@ EOD;
             $query = '?'.implode($retainedParams, '&');
           }
         }
-        
+
         return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo().$query;
     }
-    
+
     /**
      * In canvas mode, get the full URL (prefixed with the canvas URL)
-     * 
-     * @return string 
+     *
+     * @return string
      */
     public function getCurrentAppUrl()
     {
@@ -442,36 +474,36 @@ EOD;
         } else {
             $url = $this->getRequest()->getScheme().'://' . self::APP_BASE_URL . '/' . $this->getParameter('namespace') . $this->getRelativeUrl();
         }
-        
+
         $this->debugLog(__METHOD__.'()| url='.$url);
-        
+
         return $url;
     }
-    
+
     /**
      * @see FacebookBase
      */
     public function getCurrentUrl()
-    {   
+    {
         $url = $this->getRequest()->getScheme().'://'.$this->getRequest()->getHttpHost().$this->getRelativeUrl();
 
         $this->debugLog(__METHOD__.'()| url='.$url);
 
         return $url;
     }
-    
+
     /**
      * @see FacebookBase
      */
     public function getLoginUrl($params = array())
     {
         $url = parent::getLoginUrl($params);
-        
+
         $this->debugLog(__METHOD__.'()| url='.$url);
-        
+
         return $url;
     }
-    
+
     /**
     * Get the UID of the connected user, or 0
     * if the Facebook user is not connected.
@@ -481,12 +513,12 @@ EOD;
     public function getUser()
     {
         $user = parent::getUser();
-        
+
         $this->debugLog(__METHOD__.'()| user='.$user);
-        
+
         return $user;
     }
-    
+
     /**
      * @see FacebookBase
      */
@@ -497,9 +529,9 @@ EOD;
         }
 
         $sessionVarName = $this->constructSessionVariableName($key);
-        
+
         $this->debugLog(__METHOD__.'setPersistentData()| key='.$key.', value='.$value);
-        
+
         $this->session->set($sessionVarName, $value);
     }
 
@@ -513,9 +545,9 @@ EOD;
         }
 
         $sessionVarName = $this->constructSessionVariableName($key);
-        
+
         $value = ($this->session->has($sessionVarName))?$this->session->get($sessionVarName):$default;
-         
+
         $this->debugLog(__METHOD__.'setPersistentData()| key='.$key.', value='.$value);
 
         return $value;

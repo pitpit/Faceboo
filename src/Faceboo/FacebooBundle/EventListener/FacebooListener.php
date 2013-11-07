@@ -1,6 +1,6 @@
 <?php
 
-namespace Faceboo\FacebookBundle\EventListener;
+namespace Faceboo\FacebooBundle\EventListener;
 
 use Faceboo\Facebook;
 
@@ -8,9 +8,11 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 
 /**
- * @author Damien Pitard <dpitard at digitas.fr>
+ * FacebooListener
+ *
+ * @author Damien Pitard <damien.pitard@gmail.com>
  */
-class FacebookListener
+class FacebooListener
 {
     public function __construct(Facebook $facebook)
     {

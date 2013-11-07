@@ -11,52 +11,58 @@ use Faceboo\Routing\Generator\UrlGenerator;
 use Faceboo\Facebook;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 
-class FacebookServiceProvider implements ServiceProviderInterface
+/**
+ * FacebooServiceProvider
+ *
+ * @author Damien Pitard <damien.pitard@gmail.com>
+ */
+class FacebooServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * {@inheritdoc}
+     */
     public function register(Application $app)
     {
         $app['url_generator'] = $app->share(function () use ($app) {
             $urlGenerator = new UrlGenerator($app['routes'], $app['request_context']);
-            
-            if (isset($app['facebook.canvas']) && $app['facebook.canvas'] && isset($app['facebook.namespace'])) {
-                $urlGenerator->setNamespace($app['facebook.namespace']);
+
+            if (isset($app['faceboo.canvas']) && $app['faceboo.canvas'] && isset($app['faceboo.namespace'])) {
+                $urlGenerator->setNamespace($app['faceboo.namespace']);
             }
-            
+
             return $urlGenerator;
         });
-        
-        if (!isset($app['facebook.class_path'])) {
-            $app['facebook.class_path'] = __DIR__ . '/../../../vendor/facebook-php-sdk/src';
-        }
-        
-        require_once $app['facebook.class_path'] . '/facebook.php';
 
-        $app['facebook'] = $app->share(function () use ($app) {
-            
+        $app['faceboo'] = $app->share(function () use ($app) {
+
             if (!isset($app['session'])) {
                 $app->register(new SessionServiceProvider());
             }
-            
+
             $parameters = array('app_id', 'secret', 'namespace', 'canvas', 'proxy', 'timeout', 'connect_timeout', 'permissions', 'protect');
             $config = array();
-            foreach($parameters as $parameter) {
-                if (isset($app['facebook.'.$parameter])) {
-                    $config[$parameter] = $app['facebook.'.$parameter];
+            foreach ($parameters as $parameter) {
+                if (isset($app['faceboo.'.$parameter])) {
+                    $config[$parameter] = $app['faceboo.'.$parameter];
                 }
             }
 
             return new Facebook(
-                    $config,
-                    $app['session'],
-                    isset($app['monolog'])?$app['monolog']:null);
+                $config,
+                $app['session'],
+                isset($app['monolog'])?$app['monolog']:null
+            );
         });
-        
+
         $app->before(function($request) use ($app) {
-            $app['facebook']->setRequest($request);
+            $app['faceboo']->setRequest($request);
         });
     }
+
+    /**
+     * {@inheritdoc}
+     */
     public function boot(Application $app)
     {
-    	
     }
 }

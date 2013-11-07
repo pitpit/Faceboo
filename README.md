@@ -23,17 +23,15 @@ To use Faceboo with Silex <= 1.0, please use:
 Parameters
 ----------
 
-* app_id: you app id
-* secret: your app secret
-* permissions: array of facebook permissions needed to access the app
-    * http://developers.facebook.com/docs/reference/api/permissions/
-* namespace: your app namespace
-* canvas: true if your app work under a facebook iframe
+* app_id: App ID
+* secret: App Secret
+* permissions: array of facebook [oAuth permissions](http://developers.facebook.com/docs/reference/api/permissions) needed for the app
+* namespace: App namespace
+* canvas: true if the app is called through facebook iframe
 * proxy: to make facebook requests work behind non-transparent proxy
-* timeout :
-* connect_timeout
+* timeout: ...
+* connect_timeout: ...
 * protect: true|false, disable the redirection when accessing the server, in canvas mode
-* class_path (silex only): define another path to reach Facebook PHP SDK
 
 Usage
 -----
@@ -42,22 +40,20 @@ Usage
 
 Register the namespace and the extension, in top of index.php:
 
-    $app['autoloader']->registerNamespace('Faceboo', __DIR__.'/../vendor/faceboo/src');
-
-    $app->register(new Faceboo\Provider\FacebookServiceProvider(), array(
-        'facebook.app_id' => 'YOUR_APP_ID'
+    $app->register(new Faceboo\Provider\FacebooServiceProvider(), array(
+        'faceboo.app_id' => 'xxx',
+        'faceboo.secret' => 'xxx'
     ));
 
-The parameters are formated as : facebook.<NAME>
+> See above for a [complete list of avalaible parameters](#parameters).
 
+Login and ask user for [Facebook oAuth permissions](http://developers.facebook.com/docs/reference/api/permissions):
 
-Login and ask user for permissions if needed:
-
-    $app['facebook.permissions'] = array();
+    $app['faceboo.permissions'] = array();
 
     $app->match('/', function () use ($app) {
 
-        if ($response = $app['facebook']->auth()) return $response;
+        if ($response = $app['faceboo']->auth()) return $response;
 
         //...
     });
@@ -65,16 +61,16 @@ Login and ask user for permissions if needed:
 In canvas mode, protect your canvas app from direct access to the source server:
 
     $app->before(function(Request $request) use ($app) {
-        if ($response = $app['facebook']->protect()) return $response;
+        if ($response = $app['faceboo']->protect()) return $response;
     });
 
-    * do not rely on it for security, it's based on HTTP_REFERER so it's not safe
+    * do not rely on it, it's based on HTTP_REFERER so it's not really secured
 
 In a fan page tab, is the current user admin of the fan page :
 
     $app->match('/', function () use ($app) {
 
-        $isAdmin = $app['facebook']->isFanPageAdmin();
+        $isAdmin = $app['faceboo']->isFanPageAdmin();
 
         //...
     }
@@ -85,7 +81,7 @@ In a fan page tab, what is the fan page id :
 
     $app->match('/', function () use ($app) {
 
-        $pageId = $app['facebook']->getFanPageId();
+        $pageId = $app['faceboo']->getFanPageId();
 
         //...
     }
@@ -96,7 +92,7 @@ In a fan page tab, does the current user like the fan page :
 
     $app->match('/', function () use ($app) {
 
-        $isFan = $app['facebook']->isFan();
+        $isFan = $app['faceboo']->isFan();
 
         //...
     }
@@ -105,73 +101,44 @@ In a fan page tab, does the current user like the fan page :
 
 Get the current facebook user id:
 
-    $app['facebook']->getUser();
+    $app['faceboo']->getUser();
 
 Call the Facebook api:
 
-    $data =  $app['facebook']->api('/me);
+    $data =  $app['faceboo']->api('/me);
 
 ### Symfony2
-
-Register the autoload in app/autoload.php:
-
-    $loader->registerNamespaces(array(
-        //...
-        'Faceboo'        => __DIR__.'/../vendor/faceboo/src'
-    ));
-
-    //...
-
-    require_once __DIR__.'/../. /vendor/php-sdk/src/facebook.php';
 
 Register the bundle in app/AppKernel.php:
 
         $bundles = array(
             //...
-            new Faceboo\FacebookBundle\FacebooFacebookBundle(),
+            new Faceboo\FacebooBundle\FacebooFacebooBundle(),
         );
 
 Add the following in app/config/config.yml:
 
-    faceboo_facebook:
+    faceboo:
         app_id: 297720976910223
         secret: b151a27351e91dab2ee18986d8c47052
 
-Parameters:
-
-* facebook.app_id: you app id
-* facebook.secret: your app secret
-* facebook.permissions: array of facebook permissions needed to access the app
-    * http://developers.facebook.com/docs/reference/api/permissions/
-* facebook.namespace: your app namespace
-* facebook.canvas: true if your app work under a facebook iframe
-* facebook.proxy: to make facebook requests work behind non-transparent proxy
-* facebook.timeout
-* facebook.connect_timeout
-* facebook.protect: true|false, disable the redirection when accessing the server, in canvas mode
-* facebook.class_path: define another path to reach Facebook PHP SDK
+> See above for a [complete list of avalaible parameters](#parameters).
 
 Login and ask user for permissions if needed:
 
     public function indexAction()
     {
-        if ($response = $this->get('facebook')->auth()) return $response;
+        if ($response = $this->get('faceboo')->auth()) return $response;
 
         //...
     }
 
-Todo
+TODO
 ----
+
 * developp permissions authorization on website mode
 * get rid of SilexEvent dependency to make it work with Symfony
 * In canvas mode, override UrlGenerator to have the canvas URL when generate() is called with $absolute = true
 * fan page
     * does the user like the fan page ?
     * route according to local
-
-Changelog
----------
-* added symfony support
-* app_id and secret are now mandatory
-* updated to last version of Silex
-* updated parameter prefix (now "facebook")

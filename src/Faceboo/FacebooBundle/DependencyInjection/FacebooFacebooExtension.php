@@ -1,6 +1,6 @@
 <?php
 
-namespace Faceboo\FacebookBundle\DependencyInjection;
+namespace Faceboo\FacebooBundle\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
@@ -11,10 +11,10 @@ use Symfony\Component\DependencyInjection\Loader;
  * This is the class that loads and manages your bundle configuration
  *
  * To learn more see {@link http://symfony.com/doc/current/cookbook/bundles/extension.html}
- * 
+ *
  * @author Damien Pitard <dpitard at digitas.fr>
  */
-class FacebooFacebookExtension extends Extension
+class FacebooFacebooExtension extends Extension
 {
     /**
      * {@inheritDoc}
@@ -26,7 +26,7 @@ class FacebooFacebookExtension extends Extension
 
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.xml');
-        
-        $container->setParameter('faceboo_facebook.config', $config);
+
+        $container->setParameter('faceboo.config', $config);
     }
 }

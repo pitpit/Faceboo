@@ -3,24 +3,24 @@
 <container xmlns="http://symfony.com/schema/dic/services"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
-        
+
     <parameters>
-        <parameter key="facebook.class">Faceboo\Facebook</parameter>
-        <parameter key="faceboo_facebook.listener.class">Faceboo\FacebookBundle\EventListener\FacebookListener</parameter>
-        <parameter key="faceboo_facebook.config" type="collection"></parameter>
+        <parameter key="faceboo.class">Faceboo\Facebook</parameter>
+        <parameter key="faceboo.listener.class">Faceboo\FacebooBundle\EventListener\FacebooListener</parameter>
+        <parameter key="faceboo.config" type="collection"></parameter>
     </parameters>
 
     <services>
-        <service id="facebook" class="%facebook.class%">
-            <argument>%faceboo_facebook.config%</argument>
+        <service id="faceboo" class="%faceboo.class%">
+            <argument>%faceboo.config%</argument>
             <argument type="service" id="session" />
             <argument type="service" id="logger" on-invalid="null" />
         </service>
-        
-        <service id="faceboo_facebook.listener" class="%faceboo_facebook.listener.class%">
-            <argument type="service" id="facebook" />
+
+        <service id="faceboo.listener" class="%faceboo.listener.class%">
+            <argument type="service" id="faceboo" />
             <tag name="kernel.event_listener" event="kernel.request" method="onKernelRequest" />
-            
+
         </service>
     </services>
 </container>
