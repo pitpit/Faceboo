@@ -12,20 +12,13 @@ Provide several methods to do common tasks with Facebook.
 Installation
 ------------
 
-Add faceboo to your dependencies with composer:
+Add faceboo to your dependencies using composer:
 
-    php composer.phar require "pitpit/faceboo":"dev-master"
+    php composer.phar require "pitpit/faceboo":"2.0.*@dev"
 
 To use Faceboo with Silex <= 1.0, please use:
 
     php composer.phar require "pitpit/faceboo":"1.0.*@dev"
-
-Or get the sources for 1.0.*@dev:
-
-    cd vendor
-    git clone https://github.com/dpitard/Faceboo.git faceboo
-    cd faceboo
-    git submodule update --init
 
 Parameters
 ----------
