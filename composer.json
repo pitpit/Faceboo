@@ -12,6 +12,14 @@
         {
             "name": "Max Małecki",
             "homepage": "https://github.com/emgiezet"
+        },
+        {
+            "name": "Pierre-Louis LAUNAY",
+            "homepage": "https://github.com/laupiFrpar"
+        },
+        {
+            "name": "David Flores",
+            "homepage": "https://github.com/dmouse"
         }
     ],
     "require": {
