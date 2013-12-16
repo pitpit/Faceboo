@@ -176,19 +176,19 @@ class Facebook extends FacebookBase
      */
     public function auth($params = array(), $force = false)
     {
-        // $userId = $this->getUser();
-        // if (!$userId) {
-        //     if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
-        //         //something goes wrong
-        //         //we get an authorisation but we are unable to get the user id
-        //         //canvas mode : because the app is in sandbox mode
-        //         throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
-        //     }
-        // }
+        $userId = $this->getUser();
+        if (!$userId) {
+            if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
+                //something goes wrong
+                //we get an authorisation but we are unable to get the user id
+                //canvas mode : because the app is in sandbox mode
+                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
+            }
+        }
 
         $missing = $this->getMissingPermissions();
         $needAuth = (count($missing) > 0);
-        if ($needAuth && !$force  && $this->request->query->get('state')) {
+        if ($needAuth && !$force && $this->request->query->get('state')) {
             $needAuth = false;
         }
 
