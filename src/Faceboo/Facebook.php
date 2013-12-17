@@ -124,7 +124,7 @@ class Facebook extends FacebookBase
             //if we are in canvas mode (iframe), but we tried to access the
             //server directly
 
-        	$pattern = '/^https?\:\/\/' . preg_quote(self::APP_BASE_URL). '/';
+            $pattern = '/^https?\:\/\/' . preg_quote(self::APP_BASE_URL). '/';
 
              if (!$this->getRequest()->server->has('HTTP_REFERER')
                  || !preg_match($pattern, $this->getRequest()->server->get('HTTP_REFERER'))) {
@@ -141,6 +141,15 @@ class Facebook extends FacebookBase
     public function getMissingPermissions()
     {
         $userId = $this->getUser();
+        if (!$userId) {
+            if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
+                $this->clearAllPersistentData();
+                //something goes wrong
+                //we get an authorisation but we are unable to get the user id
+                //canvas mode : because the app is in sandbox mode
+                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
+            }
+        }
         $needed = $this->getParameter('permissions');
 
         if (!$userId) {
@@ -176,15 +185,16 @@ class Facebook extends FacebookBase
      */
     public function auth($params = array(), $force = false)
     {
-        $userId = $this->getUser();
-        if (!$userId) {
-            if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
-                //something goes wrong
-                //we get an authorisation but we are unable to get the user id
-                //canvas mode : because the app is in sandbox mode
-                throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
-            }
-        }
+        // $userId = $this->getUser();
+        // if (!$userId) {
+        //     if ($this->request->query->get('state') && $this->request->query->get('error') !== 'access_denied' ) {
+        //         $this->clearAllPersistentData();
+        //         //something goes wrong
+        //         //we get an authorisation but we are unable to get the user id
+        //         //canvas mode : because the app is in sandbox mode
+        //         throw new \Exception("Unable to get the facebook user id. Perhaps your app is in sandbox mode or maybe the access-token is expired. If your not in canvas mode, please load the Javascript-SDK to create a signed cookie.");
+        //     }
+        // }
 
         $missing = $this->getMissingPermissions();
         $needAuth = (count($missing) > 0);
@@ -225,6 +235,9 @@ EOD;
                 if (!isset($params['redirect_uri'])) {
                     $params['redirect_uri'] = $this->getCurrentUrl();
                 }
+
+                $this->debugLog($params);
+
                 $url = $this->getLoginUrl($params);
 
                 return new RedirectResponse($url, 302);
@@ -402,7 +415,7 @@ EOD;
         }
 
         $requests = array();
-        foreach($pageIds as $pageId) {
+        foreach ($pageIds as $pageId) {
             $requests[] =  array('method' => 'GET', 'relative_url' => "/$pageId/posts");
         }
 
@@ -415,7 +428,7 @@ EOD;
         }
 
         $collection = array();
-        foreach($response as $result) {
+        foreach ($response as $result) {
             if ($result['code'] == 200 && isset($result['body'])) {
                 $data = json_decode($result['body'], true);
                 if (!$data) {
@@ -441,25 +454,26 @@ EOD;
      */
     public function getRelativeUrl()
     {
-        $qs = $this->getRequest()->getQueryString();
+        // $qs = $this->getRequest()->getQueryString();
 
-        $query = '';
-        if (null !== $qs) {
-          // drop known fb params
-          $params = explode('&', $qs);
-          $retainedParams = array();
-          foreach ($params as $param) {
-            if ($this->shouldRetainParam($param)) {
-              $retainedParams[] = $param;
-            }
-          }
+        // $query = '';
+        // if (null !== $qs) {
+        //   // drop known fb params
+        //   $params = explode('&', $qs);
+        //   $retainedParams = array();
+        //   foreach ($params as $param) {
+        //     if ($this->shouldRetainParam($param)) {
+        //       $retainedParams[] = $param;
+        //     }
+        //   }
 
-          if (!empty($retainedParams)) {
-            $query = '?'.implode($retainedParams, '&');
-          }
-        }
+        //   if (!empty($retainedParams)) {
+        //     $query = '?'.implode($retainedParams, '&');
+        //   }
+        // }
 
-        return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo().$query;
+        // return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo().$query;
+        return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo();
     }
 
     /**
