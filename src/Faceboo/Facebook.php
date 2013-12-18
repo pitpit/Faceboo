@@ -22,6 +22,17 @@ class Facebook extends FacebookBase
     protected $parameters;
     protected $request;
 
+  /**
+   * List of query parameters that get automatically dropped when rebuilding
+   * the current URL.
+   */
+  protected static $DROP_QUERY_PARAMS = array(
+    'code',
+    'state',
+    'signed_request',
+    'url'
+  );
+
     const APP_BASE_URL = 'apps.facebook.com';
 
     /**
@@ -236,8 +247,6 @@ EOD;
                     $params['redirect_uri'] = $this->getCurrentUrl();
                 }
 
-                $this->debugLog($params);
-
                 $url = $this->getLoginUrl($params);
 
                 return new RedirectResponse($url, 302);
@@ -447,6 +456,32 @@ EOD;
         return $collection;
     }
 
+  /**
+   * Returns true if and only if the key or key/value pair should
+   * be retained as part of the query string.  This amounts to
+   * a brute-force search of the very small list of Facebook-specific
+   * params that should be stripped out.
+   *
+   * @param string $param A key or key/value pair within a URL's query (e.g.
+   *                     'foo=a', 'foo=', or 'foo'.
+   *
+   * @return boolean
+   */
+  protected function shouldRetainParam($param) {
+        $this->debugLog($param);
+    foreach (self::$DROP_QUERY_PARAMS as $drop_query_param) {
+
+        $this->debugLog($drop_query_param);
+
+      if ($param === $drop_query_param ||
+          strpos($param, $drop_query_param.'=') === 0) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
     /**
      * Get the relative URL (without scheme, hostname and port)
      *
@@ -454,26 +489,26 @@ EOD;
      */
     public function getRelativeUrl()
     {
-        // $qs = $this->getRequest()->getQueryString();
+        $qs = $this->getRequest()->getQueryString();
 
-        // $query = '';
-        // if (null !== $qs) {
-        //   // drop known fb params
-        //   $params = explode('&', $qs);
-        //   $retainedParams = array();
-        //   foreach ($params as $param) {
-        //     if ($this->shouldRetainParam($param)) {
-        //       $retainedParams[] = $param;
-        //     }
-        //   }
+        $query = '';
+        if (null !== $qs) {
+          // drop known fb params
+          $params = explode('&', $qs);
+          $retainedParams = array();
+          foreach ($params as $param) {
+            if ($this->shouldRetainParam($param)) {
+              $retainedParams[] = $param;
+            }
+          }
 
-        //   if (!empty($retainedParams)) {
-        //     $query = '?'.implode($retainedParams, '&');
-        //   }
-        // }
+          if (!empty($retainedParams)) {
+            $query = '?'.implode($retainedParams, '&');
+          }
+        }
 
-        // return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo().$query;
-        return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo();
+        return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo().$query;
+        // return $this->getRequest()->getBaseUrl().$this->getRequest()->getPathInfo();
     }
 
     /**
@@ -579,4 +614,45 @@ EOD;
         $sessionVarName = $this->constructSessionVariableName($key);
         $this->session->remove($sessionVarName);
     }
+
+    protected function getAccessTokenFromCode($code, $redirect_uri = null) {
+        if (empty($code)) {
+          return false;
+        }
+
+        if ($redirect_uri === null) {
+          $redirect_uri = $this->getCurrentUrl();
+        }
+
+        try {
+          // need to circumvent json_decode by calling _oauthRequest
+          // directly, since response isn't JSON format.
+          $access_token_response =
+            $this->_oauthRequest(
+              $this->getUrl('graph', '/oauth/access_token'),
+              $params = array('client_id' => $this->getAppId(),
+                              'client_secret' => $this->getAppSecret(),
+                              'redirect_uri' => $redirect_uri,
+                              'code' => $code));
+        } catch (FacebookApiException $e) {
+          // most likely that user very recently revoked authorization.
+          // In any event, we don't have an access token, so say so.
+          return false;
+        }
+
+        if (empty($access_token_response)) {
+          return false;
+        }
+
+        $response_params = array();
+        parse_str($access_token_response, $response_params);
+        if (!isset($response_params['access_token'])) {
+
+            $this->debugLog(__METHOD__.' - failed to get access token: ' .$access_token_response);
+          return false;
+        }
+
+        return $response_params['access_token'];
+    }
+
 }
