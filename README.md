@@ -142,3 +142,7 @@ TODO
 * fan page
     * does the user like the fan page ?
     * route according to local
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/pitpit/faceboo/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
